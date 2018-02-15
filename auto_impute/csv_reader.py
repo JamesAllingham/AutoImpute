@@ -1,6 +1,6 @@
 import numpy as np
 
-class CSVReader:
+class CSVReader(object):
     """ Manages the data read from a CSV file.
     Can return the raw data as well as masks indicating missing values and labels for column names.
     """
