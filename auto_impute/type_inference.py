@@ -1,17 +1,17 @@
 import numpy as np
 import re
 
-class TypeInferer(object):
+class TypeDeducer(object):
     """Abstract base class for all type inference modules.
     """
     self.digit_sep = ","
-    def infer(self, array):
-        raise NotImplementedError()
+    def defer(self, array):
+        raise NotImplementedError("This method must be implemented by all child classes.")
 
-class RegexTypeInferer(TypeInferer):
+class RegexTypeDeducer(TypeDeducer):
     """A regex based type inference module.
     """
-    def infer(self, array):
+    def deduce(self, array):
         
 
     def __test_disc_num(array):
