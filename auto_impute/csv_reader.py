@@ -6,25 +6,25 @@ class CSVReader(object):
     """
 
     def __init__(file_name, delimiter=',', infer_header=True)
-        self.raw_data = np.genfromtxt(delimiter=delimiter)
+        self.__raw_data = np.genfromtxt(delimiter=delimiter)
         
         if infer_header:
-            self.header = raw_data[0]
-            self.columns = raw_data[1:].T
+            self.__header = raw_data[0]
+            self.__columns = raw_data[1:].T
         else:
-            self.header = None
-            self.columns = raw_data.T        
+            self.__header = None
+            self.__columns = raw_data.T        
 
     def get_raw_data():
-        return self.raw_data
+        return self.__raw_data
 
     def get_column_names():
-        if self.header:
-            return self.header        
+        if self.__header:
+            return self.__header        
         else:
             raise ValueError('No column names were inferred.')
 
     def get_column(col_idx):
-        if col_idx > columns.shape[0]:
+        if col_idx > self.__columns.shape[0]:
             raise ValueError('Column index greater than number of columns')
-        return columns[col_idx]
+        return self.__columns[col_idx]
