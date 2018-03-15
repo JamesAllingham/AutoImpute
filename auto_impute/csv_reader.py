@@ -6,7 +6,7 @@ class CSVReader(object):
     """
 
     def __init__(file_name, delimiter=',', infer_header=True)
-        self.raw_data = np.genfromtxt(dtype="str", delimiter=delimiter)
+        self.raw_data = np.genfromtxt(delimiter=delimiter)
         
         if infer_header:
             self.header = raw_data[0]
