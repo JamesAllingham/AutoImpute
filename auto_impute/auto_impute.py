@@ -1,7 +1,17 @@
+# James Allingham
+# Feb 2018
+# auto_impute.py
+# Main file for AutoImpute CLI
+
 import argparse
 
-def main():
-    pass
+import csv_reader
+
+def main(args):
+    reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
+
+    data = reader.get_raw_data()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -12,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--delimiter", help="file delimiter (default: ',')",
                         type=str,default=",")
     parser.add_argument("-hd", "--header", help="use the first row as column names",
-                        action="store_true")
+                        type=bool, default=False)
     parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: 42)",
                         type=int, default=42)
 
@@ -35,9 +45,4 @@ if __name__ == "__main__":
                             action="store_true")
     args = parser.parse_args()
     
-    if args.verbose:
-        print("Verbose")
-    
-    print(args.file)
-    
-    main()
+    main(args)
