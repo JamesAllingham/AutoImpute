@@ -12,8 +12,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--delimiter", help="file delimiter (default: ',')",
                         type=str,default=",")
     parser.add_argument("-hd", "--header", help="use the first row as column names",
-                        action="store_false")
-    parser.add_argument("-rs", "--rand_seed", help="random seed to use (default 42)",
+                        action="store_true")
+    parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: 42)",
                         type=int, default=42)
 
     model_group = parser.add_mutually_exclusive_group()
