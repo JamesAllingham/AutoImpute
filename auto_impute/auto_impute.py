@@ -20,7 +20,8 @@ def main(args):
         out_str = "Number missing elements: "
         for i in range(data.shape[1]):
             out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:,i])))
-        print(out_str + "\n") 
+        print(out_str)
+        print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
 
 
 
