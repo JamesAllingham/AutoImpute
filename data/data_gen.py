@@ -19,7 +19,7 @@ def main():
             mask = np.random.rand(*X.shape) <= i/100
             masked_X = X.copy()
             masked_X[mask] = np.NaN
-            np.savetxt("%s-%s.csv" % (name, i), masked_X, delimiter=",")
+            np.savetxt("%s-%s-MCAR.csv" % (name, i), masked_X, delimiter=",")
 
 if __name__ == "__main__":
     main()
