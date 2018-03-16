@@ -1,3 +1,8 @@
+# James Allingham
+# Feb 2018
+# csv_reader.py
+# CSV reader for AutoImpute
+
 import numpy as np
 
 class CSVReader(object):
