@@ -4,13 +4,24 @@
 # Main file for AutoImpute CLI
 
 import argparse
+import pandas as pd
+import numpy as np
 
 import csv_reader
+
 
 def main(args):
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
 
     data = reader.get_raw_data()
+
+    if (args.verbose):
+        print("Read %s with %s rows and %s columns." % ((args.file, ) + data.shape))
+        out_str = "Number missing elements: "
+        for i in range(data.shape[1]):
+            out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:,i])))
+        print(out_str + "\n") 
+
 
 
 if __name__ == "__main__":
