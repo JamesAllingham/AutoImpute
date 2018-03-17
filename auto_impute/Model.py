@@ -18,7 +18,7 @@ class Model(object):
         self.N = data.shape[0]
         self.num_features = data.shape[1]
 
-        self.imputed_X = None
+        self.imputed_X = np.array([])
         self.ll = None
 
         if (ϵ is None):

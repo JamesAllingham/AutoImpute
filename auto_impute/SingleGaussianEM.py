@@ -15,19 +15,19 @@ class SingleGaussian(Model.Model):
         Model.Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters)        
         self.μ = np.random.rand(self.num_features)
         self.Σ = np.random.rand(self.num_features, self.num_features)
-        self.imputed_X = None
 
         # fit the model to the data
         best_ll = -np.inf
-        old_μ, old_Σ, old_imputed_X = self.μ, self.Σ, self.imputed_X
 
         for i in range(self.max_iters):
+            old_μ, old_Σ, old_imputed_X = self.μ.copy(), self.Σ.copy(), self.imputed_X.copy()
+
             if i == 0:
                 # using the current parameters, estimate the values of the missing data:
                 # impute by taking the mean of the conditional distro
                 self.__impute()
 
-            # now re-estimate μ and Σ
+            # now re-estimate μ and Σ (M-step)
             self.μ = np.mean(self.imputed_X, axis = 0)
             self.Σ = np.zeros_like(self.Σ)
             for j in range(self.N):
@@ -38,7 +38,7 @@ class SingleGaussian(Model.Model):
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σ += np.diag(np.ones(shape=(self.num_features,))*1e-6)
             
-            # using the current parameters, estimate the values of the missing data:
+            # using the current parameters, estimate the values of the missing data (E-step)
             # impute by taking the mean of the conditional distro
             self.__impute()
 
@@ -48,8 +48,8 @@ class SingleGaussian(Model.Model):
                 self.μ, self.Σ, self.imputed_X = old_μ, old_Σ, old_imputed_X
                 self.ll = best_ll
                 break
-            else:
-                best_ll = self.ll
+            
+            best_ll = self.ll
             
     def __impute(self):
         Λ = linalg.inv(self.Σ)
