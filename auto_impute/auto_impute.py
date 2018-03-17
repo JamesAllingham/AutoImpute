@@ -8,9 +8,14 @@ import pandas as pd
 import numpy as np
 
 import csv_reader
+import SingleGaussianEM
 
 
 def main(args):
+    # set random seed
+    np.random.seed(args.rand_seed)
+
+
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
 
     data = reader.get_raw_data()
@@ -22,6 +27,10 @@ def main(args):
             out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:,i])))
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
+
+    sg = SingleGaussianEM.SingleGaussian(data)
+
+    print(sg.log_likelihood())
 
 
 
