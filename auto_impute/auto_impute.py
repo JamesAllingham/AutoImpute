@@ -9,6 +9,7 @@ import numpy as np
 
 import csv_reader
 import SingleGaussianEM
+import GMM_EM
 
 
 def main(args):
@@ -28,9 +29,12 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
 
-    sg = SingleGaussianEM.SingleGaussian(data)
+    if (args.em_gaussian_mixture):
+        model = GMM_EM.GMM(data, 5)
+    else:
+        model = SingleGaussianEM.SingleGaussian(data)
 
-    print(sg.log_likelihood())
+    print(model.log_likelihood())
 
 
 
@@ -53,11 +57,11 @@ if __name__ == "__main__":
     # speed_group.add_argument("-e", "--exhaustive", help="exhaustive impute",
     #                          action="store_true")
     model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation",
-                        action="store_false")
+                            action="store_true")
     model_group.add_argument("-emg", "--em_gaussian", help="impute using a multivariate Gaussian fitted with EM",
-                        action="store_false")
+                            action="store_true")
     model_group.add_argument("-emgmm", "--em_gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
-                        action="store_false")
+                            action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument("-s", "--sample", help="number of samples to take from distribution",
