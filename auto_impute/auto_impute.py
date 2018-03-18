@@ -26,11 +26,16 @@ def main(args):
             out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:,i])))
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
-
+        
     if (args.gaussian_mixture):
         model = GMM_EM.GMM(data, 3, verbose=args.verbose)
     else:
         model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
+
+    if args.test is not None:
+        test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
+        imputed_X = model.impute()
+        print(np.sqrt(np.mean(np.power(test_data - imputed_X,2))))
 
     print(model.log_likelihood())
 
@@ -44,10 +49,12 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-d", "--delimiter", help="file delimiter (default: ',')",
                         type=str,default=",")
-    parser.add_argument("-hd", "--header", help="use the first row as column names",
+    parser.add_argument("-hd", "--header", help="use the first row as column names (default: False)",
                         type=bool, default=False)
-    parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: 42)",
+    parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: None)",
                         type=int)
+    parser.add_argument("-t", "--test", help="file to use for calculating RMSE",
+                        type=str,default=None)
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
