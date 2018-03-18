@@ -11,7 +11,6 @@ import csv_reader
 import SingleGaussianEM
 import GMM_EM
 
-
 def main(args):
     # set random seed
     if (args.rand_seed): np.random.seed(args.rand_seed)
@@ -28,10 +27,10 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
 
-    if (args.em_gaussian_mixture):
-        model = GMM_EM.GMM(data, 5)
+    if (args.gaussian_mixture):
+        model = GMM_EM.GMM(data, 3, verbose=args.verbose)
     else:
-        model = SingleGaussianEM.SingleGaussian(data)
+        model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
 
     print(model.log_likelihood())
 
@@ -57,9 +56,9 @@ if __name__ == "__main__":
     #                          action="store_true")
     model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation",
                             action="store_true")
-    model_group.add_argument("-emg", "--em_gaussian", help="impute using a multivariate Gaussian fitted with EM",
+    model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
                             action="store_true")
-    model_group.add_argument("-emgmm", "--em_gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
+    model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
                             action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
