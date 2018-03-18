@@ -14,8 +14,7 @@ import GMM_EM
 
 def main(args):
     # set random seed
-    np.random.seed(args.rand_seed)
-
+    if (args.rand_seed): np.random.seed(args.rand_seed)
 
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
 
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("-hd", "--header", help="use the first row as column names",
                         type=bool, default=False)
     parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: 42)",
-                        type=int, default=42)
+                        type=int)
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
