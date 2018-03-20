@@ -16,7 +16,7 @@ class SingleGaussian(Model.Model):
         # self.μ = np.random.rand(self.num_features)
         # self.Σ = np.random.rand(self.num_features, self.num_features)
         self.μ = np.nanmean(self.X, axis=0)
-        self.Σ = np.nansum([np.outer(self.X[i,:] - self.μ, self.X[i,:] - self.μ) for i in range(self.N)], axis=0)
+        self.Σ = np.nanmean([np.outer(self.X[i,:] - self.μ, self.X[i,:] - self.μ) for i in range(self.N)], axis=0)
 
         # fit the model to the data
         best_ll = -np.inf
@@ -57,26 +57,25 @@ class SingleGaussian(Model.Model):
             if (self.verbose): print("Iter: %s\t\tLL: %f" % (i, self.ll))
             
     def __calc_expectation(self):
-        Λ = linalg.inv(self.Σ)
         expected_X = self.X.copy()
         for i in range(self.N):
-            X_row = expected_X[i,:]
+            x_row = expected_X[i,:]
             # if there are no missing values then go to next iter
-            if np.all(~np.isnan(X_row)): continue
+            if np.all(~np.isnan(x_row)): continue
 
             # figure out which values are missing
-            o_locs = np.where(~np.isnan(X_row))[0]
-            m_locs = np.where(np.isnan(X_row))[0]
+            o_locs = np.where(~np.isnan(x_row))[0]
+            m_locs = np.where(np.isnan(x_row))[0]
+            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
             mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
 
             # calculate the mean of m|o
             μmo = self.μ[m_locs] 
             if (len(o_locs)): # if there are any observations
                 # get the subsets of the precision matrices
-                Λmm = Λ[mm_coords].reshape(len(m_locs), len(m_locs))
-                Λmo = Λ[mo_coords].reshape(len(m_locs), len(o_locs))
-                μmo -= linalg.inv(Λmm) @ Λmo @ (X_row[o_locs] - self.μ[o_locs])
+                Σoo = self.Σ[oo_coords].reshape(len(o_locs),len(o_locs))
+                Σmo = self.Σ[mo_coords].reshape(len(m_locs),len(o_locs))
+                μmo += Σmo @ linalg.inv(Σoo) @ (x_row[o_locs] - self.μ[o_locs])
 
             expected_X[i,:][m_locs] = μmo
         self.expected_X = expected_X
@@ -116,5 +115,6 @@ class SingleGaussian(Model.Model):
 
                 sampled_Xs[j,i,m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
+        # return sampled_Xs*self.std + self.mean
         return sampled_Xs
 
