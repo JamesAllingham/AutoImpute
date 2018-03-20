@@ -87,5 +87,34 @@ class SingleGaussian(Model.Model):
                 ll += stats.multivariate_normal.pdf(self.expected_X[i,:], mean=self.μ, cov=self.Σ)
         self.ll = np.log(ll)
 
-    # def sample(self, n):
-    #     sampled_Xs = np.stack([])
+    def sample(self, n):
+        sampled_Xs = np.stack([self.X.copy()]*n, axis=0)
+
+        for i in range(self.N):
+            # figure out the conditional distribution for the missing data given the observed data
+            x_row = self.X[i,:]
+            # if there are no missing values then go to next iter
+            if np.all(~np.isnan(x_row)): continue
+
+            # figure out which values are missing
+            o_locs = np.where(~np.isnan(x_row))[0]
+            m_locs = np.where(np.isnan(x_row))[0]
+            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
+            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+
+            for j in range(n):
+                μmo = self.μ[m_locs]
+
+                if (len(o_locs)):
+                    Σoo = self.Σ[oo_coords].reshape(len(o_locs), len(o_locs))
+                    Σmo = self.Σ[mo_coords].reshape(len(m_locs), len(o_locs))
+                    diff = x_row[o_locs] - self.μ[o_locs]
+                    μmo += Σmo @ linalg.inv(Σoo) @ diff
+
+                Σmm = self.Σ[mm_coords].reshape(len(m_locs), len(m_locs))
+
+                sampled_Xs[j,i,m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
+
+        return sampled_Xs
+
