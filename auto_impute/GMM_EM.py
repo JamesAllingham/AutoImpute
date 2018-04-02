@@ -20,7 +20,7 @@ class GMM(Model.Model):
         self.μs = np.stack([np.nanmean(self.X[idx, :], axis=0) for idx in indices], axis=0)
         # self.Σs = np.stack([np.diag(self.μs[j,:]) for j in range(self.num_gaussians)], axis=0)
         self.Σs = np.stack(
-            [np.nansum(
+            [np.nanmean(
                 [np.outer(self.X[i,:] - μ, self.X[i,:] - μ) for i in idx], axis=0) for μ, idx in zip(self.μs, indices)]
             , axis=0)
 
@@ -103,7 +103,7 @@ class GMM(Model.Model):
                 self.Σs[j] /= np.sum(p)
                 self.Σs[j] += C
                 # regularisation term ensuring that the cov matrix is always pos def
-                self.Σs[j] += np.eye(self.num_features)*1e-3
+                self.Σs[j] += np.eye(self.num_features)*1
             
             self.__calc_expectation()
             # if the log likelihood stops improving then stop iterating
@@ -185,4 +185,5 @@ class GMM(Model.Model):
 
                 sampled_Xs[j,i,m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
-        return sampled_Xs
+        # return sampled_Xs*self.std + self.mean
+        return sampled_Xs        
