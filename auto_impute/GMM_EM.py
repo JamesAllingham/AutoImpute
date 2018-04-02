@@ -12,7 +12,7 @@ from scipy import linalg
 class GMM(Model):
 
     def __init__(self, data, num_gaussians, ϵ=None, max_iters=None, verbose=None):
-        Model.Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
+        Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
         self.num_gaussians = num_gaussians
         # self.μs = np.random.rand(self.num_gaussians, self.num_features)
         # self.Σs = np.stack([np.eye(self.num_features) for _ in range(self.num_gaussians)], axis=0)

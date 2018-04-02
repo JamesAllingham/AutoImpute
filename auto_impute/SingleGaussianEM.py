@@ -12,7 +12,7 @@ from scipy import linalg
 class SingleGaussian(Model):
 
     def __init__(self, data, ϵ=None, max_iters=None, verbose=None):
-        Model.Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
+        Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
         # self.μ = np.random.rand(self.num_features)
         # self.Σ = np.random.rand(self.num_features, self.num_features)
         self.μ = np.nanmean(self.X, axis=0)
