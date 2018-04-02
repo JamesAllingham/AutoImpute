@@ -3,13 +3,13 @@
 # GMM_EM.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
-import Model
+from Model import Model
 
 import numpy as np
 from scipy import stats
 from scipy import linalg
 
-class GMM(Model.Model):
+class GMM(Model):
 
     def __init__(self, data, num_gaussians, ϵ=None, max_iters=None, verbose=None):
         Model.Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        

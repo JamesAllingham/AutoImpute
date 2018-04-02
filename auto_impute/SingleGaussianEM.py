@@ -3,13 +3,13 @@
 # SingleGaussianEM.py
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
 
-import Model
+from Model import Model
 
 import numpy as np
 from scipy import stats
 from scipy import linalg
 
-class SingleGaussian(Model.Model):
+class SingleGaussian(Model):
 
     def __init__(self, data, ϵ=None, max_iters=None, verbose=None):
         Model.Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
