@@ -22,11 +22,13 @@ class Model(object):
         self.expected_X = np.array([])
         self.ll = None
 
+        # refused bequest
         if (ϵ is None):
             self.ϵ = 1e-1
         else:
             self.ϵ = ϵ
 
+        # refused bequest
         if (max_iters is None):
             self.max_iters = 100
         else:
@@ -43,20 +45,20 @@ class Model(object):
         # return self.expected_X*self.std + self.mean
         return self.expected_X
 
-    def __calc_expectation(self):
-        """Helper function for calculating the expectation of the missing data.
-        """
-        raise NotImplementedError 
+    # def __calc_expectation(self):
+    #     """Helper function for calculating the expectation of the missing data.
+    #     """
+    #     raise NotImplementedError 
 
     def log_likelihood(self):
         """Calculates the log likelihood of the repaired data given the model paramers.
         """
         return self.ll 
 
-    def __log_likelihood(self):
-        """Helper function for log likelihood.
-        """
-        raise NotImplementedError 
+    # def __log_likelihood(self):
+    #     """Helper function for log likelihood.
+    #     """
+    #     raise NotImplementedError 
 
     def sample(self, n):
         """Samples from the density.
