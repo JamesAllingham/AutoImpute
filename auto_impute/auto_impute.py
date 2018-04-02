@@ -34,7 +34,9 @@ def main(args):
 
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
-        imputed_X = model.impute()
+        # imputed_X = model.sample(1)
+        imputed_X =  model.impute()
+        # print(imputed_X)
         print(np.sqrt(np.mean(np.power(test_data - imputed_X,2))))
 
     print(model.log_likelihood())
@@ -70,7 +72,7 @@ if __name__ == "__main__":
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument("-s", "--sample", help="number of samples to take from distribution",
-                            type=int)
+                            type=int, default=None)
     output_group.add_argument("-mm", "--mean_mode", help="take mean or mode of continuous or discrete distributions, respectively (default option)",
                             action="store_true")
     args = parser.parse_args()
