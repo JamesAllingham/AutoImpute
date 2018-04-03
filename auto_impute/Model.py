@@ -21,8 +21,9 @@ class Model(object):
         self.num_features = data.shape[1]
 
         # check that the data is somewhat reasonable
-        if self.N < 1: raise RuntimeError("Input data must have at least one example.")
+        if self.N < 1: raise RuntimeError("Input data must have at least one example.") # consider adding specific exception classes for these
         if self.num_features < 1: raise RuntimeError("Input data must have at least one feature.")
+        if np.any(np.isnan(np.nanmean(data, axis=0))): raise RuntimeError("Each feature must have at least one observed value.")
 
         self.expected_X = np.array([])
         self.ll = None
