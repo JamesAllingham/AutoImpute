@@ -33,16 +33,6 @@ class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
 
         self.assertEqual(ll, -np.inf)
 
-class OneValueBaseTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.data = np.array(
-            [[1     , np.nan, np.nan],
-             [np.nan, 2     , np.nan],
-             [np.nan, np.nan, 3     ]],
-             dtype=np.float32
-        )
-
 class OneValueLLTestCase(OneValueBaseTestCase):
 
     def runTest(self):
@@ -60,16 +50,6 @@ class OneValueResultTestCase(OneValueBaseTestCase):
         result = model.impute()
 
         self.assertTrue(np.array_equal(result, np.array([1,2,3,1,2,3,1,2,3]).reshape(3,3)))
-
-class TwoValuesBaseTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.data = np.array(
-            [[1     , 3     , 5     ],
-             [2     , 4     , 6     ],
-             [np.nan, np.nan, np.nan]],
-             dtype=np.float32
-        )
 
 class TwoValuesLLTestCase(TwoValuesBaseTestCase):
 
