@@ -13,13 +13,13 @@ import MeanImpute
 
 def main(args):
     # set random seed
-    if (args.rand_seed): np.random.seed(args.rand_seed)
+    if args.rand_seed: np.random.seed(args.rand_seed)
 
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
 
     data = reader.get_raw_data()
 
-    if (args.verbose):
+    if args.verbose:
         print("Read %s with %s rows and %s columns." % ((args.file, ) + data.shape))
         out_str = "Number missing elements: "
         for i in range(data.shape[1]):
@@ -27,9 +27,9 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
 
-    if (args.gaussian_mixture):
+    if args.gaussian_mixture:
         model = GMM_EM.GMM(data, 3, verbose=args.verbose)
-    elif (args.single_gaussian):
+    elif args.single_gaussian:
         model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
     else:
         model = MeanImpute.MeanImpute(data, verbose=args.verbose)

@@ -29,7 +29,7 @@ class GMM(Model):
 
         best_ll = -np.inf
 
-        if (self.verbose): print("Fitting model:")
+        if self.verbose: print("Fitting model:")
         for k in range(self.max_iters):
             old_μs, old_Σs, old_expected_X, old_Xs, old_ps = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.ps.copy()
 
@@ -42,7 +42,7 @@ class GMM(Model):
 
                 x = x_row[o_locs]
                 sz = len(x)
-                if (sz):
+                if sz:
                     for j in range(self.num_gaussians):
                         Σoo = self.Σs[j, :, :][oo_coords].reshape(sz, sz)
                         μo = self.μs[j, o_locs]
@@ -86,7 +86,7 @@ class GMM(Model):
                     Σmm = self.Σs[j, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
                     tmp = Σmm
-                    if (o_locs.size):
+                    if o_locs.size:
                         Σoo = self.Σs[j, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                         Σmo = self.Σs[j, :, :][mo_coords].reshape(len(m_locs), len(o_locs)) 
                         tmp -= Σmo @ linalg.inv(Σoo) @ Σmo.T
@@ -108,13 +108,13 @@ class GMM(Model):
             self.__calc_expectation()
             # if the log likelihood stops improving then stop iterating
             self.__log_likelihood()
-            if (self.ll < best_ll or self.ll - best_ll < self.ϵ):
+            if self.ll < best_ll or self.ll - best_ll < self.ϵ:
                 self.μs, self.Σs, self.expected_X, self.Xs, self.ps = old_μs, old_Σs, old_expected_X, old_Xs, old_ps
                 self.ll = best_ll
                 break
             
             best_ll = self.ll
-            if (self.verbose): print("Iter: %s\t\tLL: %f" % (k, self.ll))
+            if self.verbose: print("Iter: %s\t\tLL: %f" % (k, self.ll))
 
     def __calc_expectation(self): # should probably split this into two functions one for expected_X and one for Xs
         Xs = np.stack([self.X]*self.num_gaussians, axis=0)
@@ -133,7 +133,7 @@ class GMM(Model):
                 diff = x_row[o_locs] - self.μs[j, o_locs]
 
                 Xs[j, i, m_locs] = self.μs[j, m_locs]
-                if (len(o_locs)):
+                if o_locs.size:
                     Σoo = self.Σs[j, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                     Σmo = self.Σs[j, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
                     Xs[j, i, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
@@ -175,7 +175,7 @@ class GMM(Model):
                 choice = np.random.choice(self.num_gaussians, p=self.ps[i, :])
                 μmo = self.μs[choice,m_locs]
 
-                if (len(o_locs)):
+                if o_locs.size:
                     Σoo = self.Σs[choice, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                     Σmo = self.Σs[choice, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
                     diff = x_row[o_locs] - self.μs[choice,o_locs]
