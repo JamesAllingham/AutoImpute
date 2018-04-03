@@ -29,7 +29,7 @@ class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
         imputed_X = model.impute()
         rmse = np.sqrt(np.mean(np.power(self.data - imputed_X,2)))
 
-        self.assertAlmostEquals(rmse, 0.0)
+        self.assertAlmostEqual(rmse, 0.0)
 
 class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
 
@@ -39,3 +39,12 @@ class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
         ll = model.log_likelihood()
 
         self.assertEqual(ll, -np.inf)
+
+class AllMissingValuesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.data = np.array([np.nan]*9).reshape(3,3)
+
+    def runTest(self):
+        with self.assertRaises(RuntimeError):
+            model = MeanImpute(self.data, verbose=False)
