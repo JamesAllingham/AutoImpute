@@ -10,6 +10,7 @@ import numpy as np
 import csv_reader
 import SingleGaussianEM
 import GMM_EM
+import MeanImpute
 
 def main(args):
     # set random seed
@@ -29,17 +30,19 @@ def main(args):
         
     if (args.gaussian_mixture):
         model = GMM_EM.GMM(data, 3, verbose=args.verbose)
-    else:
+    elif (args.single_gaussian):
         model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
+    else:
+        model = MeanImpute.MeanImpute(data, verbose=args.verbose)
 
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
         # imputed_X = model.sample(1)
         imputed_X =  model.impute()
         # print(imputed_X)
-        print(np.sqrt(np.mean(np.power(test_data - imputed_X,2))))
+        print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X,2))))
 
-    print(model.log_likelihood())
+    print("LL: %s" % model.log_likelihood())
 
 
 
