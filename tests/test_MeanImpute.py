@@ -12,17 +12,7 @@ sys.path.append("../auto_impute/")
 sys.path.append("auto_impute/")
 
 from MeanImpute import MeanImpute
-
-class NoMissingValuesBaseTestCase(unittest.TestCase):
-
-    def setUp(self):
-        # create a fake data file to impute
-        self.data = np.array(
-            [[1,2,3],
-             [4,5,6],
-             [7,8,9]], 
-             dtype=np.float32
-        )
+from test_utils import NoMissingValuesBaseTestCase
 
 class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
 
