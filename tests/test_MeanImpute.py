@@ -106,7 +106,7 @@ class AllMissingValuesTestCase(unittest.TestCase):
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
-            model = MeanImpute(self.data, verbose=False)
+            MeanImpute(self.data, verbose=False)
 
 class NoRowsTestCase(unittest.TestCase):
 
@@ -115,7 +115,7 @@ class NoRowsTestCase(unittest.TestCase):
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
-            model = MeanImpute(self.data, verbose=True)
+            MeanImpute(self.data, verbose=True)
 
 class NoColsTestCase(unittest.TestCase):
 
@@ -124,4 +124,4 @@ class NoColsTestCase(unittest.TestCase):
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
-            model = MeanImpute(self.data, verbose=True)
+            MeanImpute(self.data, verbose=True)
