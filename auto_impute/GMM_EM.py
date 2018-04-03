@@ -153,7 +153,7 @@ class GMM(Model):
             for j in range(self.num_gaussians):
                 tmp += self.ps[i,j] * stats.multivariate_normal.pdf(self.expected_X[i,:], mean=self.μs[j,:], cov=self.Σs[j,:,:])
             ll += np.log(tmp)
-        self.ll = ll  
+        self.ll = ll/self.N
 
     def sample(self, n):
         sampled_Xs = np.stack([self.X]*n, axis=0)
