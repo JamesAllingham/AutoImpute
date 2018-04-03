@@ -4,7 +4,6 @@
 # CSV reader for AutoImpute
 
 import numpy as np
-import pandas as pd
 
 class CSVReader(object):
     """ Manages the data read from a CSV file.

@@ -3,10 +3,10 @@
 # MeanImpute.py
 # Imputation by replacing missing values with the mean for the collumn
 
-from Model import Model
-
 import numpy as np
 import warnings
+
+from Model import Model
 
 class MeanImpute(Model):
 
@@ -21,10 +21,10 @@ class MeanImpute(Model):
         # self.ll = np.log(np.sum(np.stack([means]*self.N, axis=0) == self.expected_X))
         ll = 0
         for i in range(self.N):
-            ll += np.log(np.array_equal(means, self.expected_X[i,:]))
+            ll += np.log(np.array_equal(means, self.expected_X[i, :]))
         self.ll = ll/self.N
 
 
-    def sample(self):
+    def sample(self, n):
         warnings.warn("Cannot sample from a mean imputation. Returning the means.")
         return self.expected_X

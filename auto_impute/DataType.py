@@ -10,3 +10,4 @@ class DataType(Enum):
     Real = 2
     Date = 3
     Unknown = 4
+    

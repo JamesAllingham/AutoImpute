@@ -4,7 +4,6 @@
 # Main file for AutoImpute CLI
 
 import argparse
-import pandas as pd
 import numpy as np
 
 import csv_reader
@@ -24,10 +23,10 @@ def main(args):
         print("Read %s with %s rows and %s columns." % ((args.file, ) + data.shape))
         out_str = "Number missing elements: "
         for i in range(data.shape[1]):
-            out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:,i])))
+            out_str += "col %s: %s  " % (i, np.sum(np.isnan(data[:, i])))
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
-        
+
     if (args.gaussian_mixture):
         model = GMM_EM.GMM(data, 3, verbose=args.verbose)
     elif (args.single_gaussian):
@@ -40,7 +39,7 @@ def main(args):
         # imputed_X = model.sample(1)
         imputed_X =  model.impute()
         # print(imputed_X)
-        print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X,2))))
+        print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
 
     print("LL: %s" % model.log_likelihood())
 
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", help="increase the output verbosity",
                         action="store_true")
     parser.add_argument("-d", "--delimiter", help="file delimiter (default: ',')",
-                        type=str,default=",")
+                        type=str, default=",")
     parser.add_argument("-hd", "--header", help="use the first row as column names (default: False)",
                         type=bool, default=False)
     parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: None)",
@@ -67,17 +66,17 @@ if __name__ == "__main__":
     # speed_group.add_argument("-e", "--exhaustive", help="exhaustive impute",
     #                          action="store_true")
     model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation",
-                            action="store_true")
+                             action="store_true")
     model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
-                            action="store_true")
+                             action="store_true")
     model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
-                            action="store_true")
+                             action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument("-s", "--sample", help="number of samples to take from distribution",
-                            type=int, default=None)
+                              type=int, default=None)
     output_group.add_argument("-mm", "--mean_mode", help="take mean or mode of continuous or discrete distributions, respectively (default option)",
-                            action="store_true")
-    args = parser.parse_args()
+                              action="store_true")
+    parsed_args = parser.parse_args()
     
-    main(args)
+    main(parsed_args)

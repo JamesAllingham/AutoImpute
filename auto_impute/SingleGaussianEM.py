@@ -16,7 +16,7 @@ class SingleGaussian(Model):
         # self.μ = np.random.rand(self.num_features)
         # self.Σ = np.random.rand(self.num_features, self.num_features)
         self.μ = np.nanmean(self.X, axis=0)
-        self.Σ = np.nanmean([np.outer(self.X[i,:] - self.μ, self.X[i,:] - self.μ) for i in range(self.N)], axis=0)
+        self.Σ = np.nanmean([np.outer(self.X[i, :] - self.μ, self.X[i, :] - self.μ) for i in range(self.N)], axis=0)
 
         # fit the model to the data
         best_ll = -np.inf
@@ -31,10 +31,10 @@ class SingleGaussian(Model):
                 self.__calc_expectation()
 
             # now re-estimate μ and Σ (M-step)
-            self.μ = np.mean(self.expected_X, axis = 0)
+            self.μ = np.mean(self.expected_X, axis=0)
             self.Σ = np.zeros_like(self.Σ)
             for j in range(self.N):
-                diff = self.expected_X[j,:] - self.μ
+                diff = self.expected_X[j, :] - self.μ
                 self.Σ += np.outer(diff, diff.T)
             self.Σ = self.Σ/self.N 
 
@@ -59,7 +59,7 @@ class SingleGaussian(Model):
     def __calc_expectation(self):
         expected_X = self.X.copy()
         for i in range(self.N):
-            x_row = expected_X[i,:]
+            x_row = expected_X[i, :]
             # if there are no missing values then go to next iter
             if np.all(~np.isnan(x_row)): continue
 
@@ -73,17 +73,17 @@ class SingleGaussian(Model):
             μmo = self.μ[m_locs] 
             if (len(o_locs)): # if there are any observations
                 # get the subsets of the precision matrices
-                Σoo = self.Σ[oo_coords].reshape(len(o_locs),len(o_locs))
-                Σmo = self.Σ[mo_coords].reshape(len(m_locs),len(o_locs))
+                Σoo = self.Σ[oo_coords].reshape(len(o_locs), len(o_locs))
+                Σmo = self.Σ[mo_coords].reshape(len(m_locs), len(o_locs))
                 μmo += Σmo @ linalg.inv(Σoo) @ (x_row[o_locs] - self.μ[o_locs])
 
-            expected_X[i,:][m_locs] = μmo
+            expected_X[i, :][m_locs] = μmo
         self.expected_X = expected_X
 
     def __log_likelihood(self):
         ll = 0
         for i in range(self.N):
-            ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i,:], mean=self.μ, cov=self.Σ))
+            ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i, :], mean=self.μ, cov=self.Σ))
         self.ll = ll/self.N
 
     def sample(self, n):
@@ -91,7 +91,7 @@ class SingleGaussian(Model):
 
         for i in range(self.N):
             # figure out the conditional distribution for the missing data given the observed data
-            x_row = self.X[i,:]
+            x_row = self.X[i, :]
             # if there are no missing values then go to next iter
             if np.all(~np.isnan(x_row)): continue
 
@@ -113,8 +113,7 @@ class SingleGaussian(Model):
 
                 Σmm = self.Σ[mm_coords].reshape(len(m_locs), len(m_locs))
 
-                sampled_Xs[j,i,m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
+                sampled_Xs[j, i, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
         # return sampled_Xs*self.std + self.mean
         return sampled_Xs
-

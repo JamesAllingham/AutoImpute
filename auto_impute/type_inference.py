@@ -15,9 +15,9 @@ class RegexTypeDeducer(TypeDeducer):
     def deduce(self, array):
         if __test_real_num(array):
             return DataType.Real
-        else if __test_integer_num(array):
+        elif __test_integer_num(array):
             return DataType.Integer
-        else if __test_date(array):
+        elif __test_date(array):
             return DataType.Date
         else:
             return DataType.Unknown
