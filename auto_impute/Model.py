@@ -13,28 +13,33 @@ class Model(object):
         # normalise the data for numerical stability
         self.mean = np.nanmean(data, axis=0)
         self.std = np.nanstd(data, axis=0)
+
         # self.X = (data - self.mean)/self.std
         self.X = data
 
         self.N = data.shape[0]
         self.num_features = data.shape[1]
 
+        # check that the data is somewhat reasonable
+        if self.N < 1: raise RuntimeError("Input data must have at least one example.")
+        if self.num_features < 1: raise RuntimeError("Input data must have at least one feature.")
+
         self.expected_X = np.array([])
         self.ll = None
 
         # refused bequest
-        if (ϵ is None):
+        if ϵ is None:
             self.ϵ = 1e-1
         else:
             self.ϵ = ϵ
 
         # refused bequest
-        if (max_iters is None):
+        if max_iters is None:
             self.max_iters = 100
         else:
             self.max_iters = max_iters
 
-        if (verbose is None):
+        if verbose is None:
             self.verbose = False
         else:
             self.verbose = verbose
