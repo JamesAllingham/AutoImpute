@@ -1,6 +1,6 @@
 # James Allingham
 # April 2018
-# mean_impute.py
+# MeanImpute.py
 # Imputation by replacing missing values with the mean for the collumn
 
 from Model import Model

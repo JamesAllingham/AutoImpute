@@ -83,7 +83,7 @@ class SingleGaussian(Model):
     def __log_likelihood(self):
         ll = 0
         for i in range(self.N):
-                ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i,:], mean=self.μ, cov=self.Σ))
+            ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i,:], mean=self.μ, cov=self.Σ))
         self.ll = ll/self.N
 
     def sample(self, n):
