@@ -18,7 +18,6 @@ class MeanImpute(Model):
         missing_locs = np.isnan(self.X)
         self.expected_X[missing_locs] = means[np.where(missing_locs)[1]]
 
-        # self.ll = np.log(np.sum(np.stack([means]*self.N, axis=0) == self.expected_X))
         ll = 0
         for i in range(self.N):
             ll += np.log(np.array_equal(means, self.expected_X[i, :]))

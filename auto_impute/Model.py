@@ -39,20 +39,10 @@ class Model(object):
         # return self.expected_X*self.std + self.mean
         return self.expected_X
 
-    # def __calc_expectation(self):
-    #     """Helper function for calculating the expectation of the missing data.
-    #     """
-    #     raise NotImplementedError 
-
     def log_likelihood(self):
         """Calculates the log likelihood of the repaired data given the model paramers.
         """
-        return self.ll 
-
-    # def __calc_ll(self):
-    #     """Helper function for log likelihood.
-    #     """
-    #     raise NotImplementedError 
+        return self.ll
 
     def sample(self, n):
         """Samples from the density.

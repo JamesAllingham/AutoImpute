@@ -14,18 +14,15 @@ class GMM(Model):
     def __init__(self, data, num_gaussians, verbose=None):
         Model.__init__(self, data, verbose=verbose)
         self.num_gaussians = num_gaussians
-        # self.μs = np.random.rand(self.num_gaussians, self.num_features)
-        # self.Σs = np.stack([np.eye(self.num_features) for _ in range(self.num_gaussians)], axis=0)
         indices = np.stack([np.random.choice(self.N, int(self.N/2)) for _ in range(self.num_gaussians)], axis=0)
         self.μs = np.stack([np.nanmean(self.X[idx, :], axis=0) for idx in indices], axis=0)
-        # self.Σs = np.stack([np.diag(self.μs[j,:]) for j in range(self.num_gaussians)], axis=0)
         self.Σs = np.stack(
             [np.nanmean(
                 [np.outer(self.X[i, :] - μ, self.X[i, :] - μ) for i in idx], axis=0) for μ, idx in zip(self.μs, indices)]
             , axis=0)
 
         self.Xs = np.array([])
-        self.ps = np.array([])
+        self.ps = np.random.rand(self.N, self.num_gaussians)
 
         self.__calc_expectation()
         self.__calc_ll()
@@ -186,6 +183,5 @@ class GMM(Model):
 
                 sampled_Xs[j, i, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
-        # return sampled_Xs*self.std + self.mean
         return sampled_Xs
         

@@ -12,9 +12,7 @@ from scipy import linalg
 class SingleGaussian(Model):
 
     def __init__(self, data, verbose=None):
-        Model.__init__(self, data, verbose=verbose)        
-        # self.μ = np.random.rand(self.num_features)
-        # self.Σ = np.random.rand(self.num_features, self.num_features)
+        Model.__init__(self, data, verbose=verbose)
         self.μ = np.nanmean(self.X, axis=0)
         self.Σ = np.nanmean([np.outer(self.X[i, :] - self.μ, self.X[i, :] - self.μ) for i in range(self.N)], axis=0)
 
@@ -28,11 +26,6 @@ class SingleGaussian(Model):
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
-
-            # if i == 0:
-            #     # using the current parameters, estimate the values of the missing data:
-            #     # impute by taking the mean of the conditional distro
-            #     self.__calc_expectation()
 
             # now re-estimate μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
@@ -119,5 +112,4 @@ class SingleGaussian(Model):
 
                 sampled_Xs[j, i, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
-        # return sampled_Xs*self.std + self.mean
         return sampled_Xs
