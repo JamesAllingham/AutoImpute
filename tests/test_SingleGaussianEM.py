@@ -25,11 +25,11 @@ class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
 
         self.assertAlmostEqual(rmse, 0.0)
 
-class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
+class NoMissingValuesInitialLLTestCase(NoMissingValuesBaseTestCase):
 
     def runTest(self):
         model = SingleGaussian(self.data, verbose=False)
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -8.453194840524363)
+        self.assertAlmostEqual(ll, -8.453194840524363) # def LL(sig, mu, k, x): return -0.5*(np.log(np.linalg.det(sig)) + (x - mu).T @ np.linalg.inv(sig) @ (x - mu) + k*np.log(2*np.pi) )
