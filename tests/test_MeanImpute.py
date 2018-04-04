@@ -12,7 +12,7 @@ sys.path.append("../auto_impute/")
 sys.path.append("auto_impute/")
 
 from MeanImpute import MeanImpute
-from test_utils import NoMissingValuesBaseTestCase
+from test_utils import NoMissingValuesBaseTestCase, OneValueBaseTestCase,TwoValuesBaseTestCase
 
 class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
 
