@@ -67,7 +67,7 @@ class TwoValuesResultTestCase(TwoValuesBaseTestCase):
 
         result = model.impute()
 
-        self.assertTrue(np.array_equal(result, np.array([1,3,5,2,4,6,1.5,3.5,5.5]).reshape(3,3)))
+        self.assertTrue(np.array_equal(result, np.array([1,3,5,6,4,2,3.5,3.5,3.5]).reshape(3,3)))
 
 class AllMissingValuesTestCase(unittest.TestCase):
 

@@ -11,9 +11,9 @@ class NoMissingValuesBaseTestCase(unittest.TestCase):
     def setUp(self):
         # create a fake data file to impute
         self.data = np.array(
-            [[1,2,3],
-             [4,5,6],
-             [7,8,9]], 
+            [[1,2.5,0],
+             [12,5,6],
+             [-7,10,9]], 
              dtype=np.float32
         )
 
@@ -32,8 +32,7 @@ class TwoValuesBaseTestCase(unittest.TestCase):
     def setUp(self):
         self.data = np.array(
             [[1     , 3     , 5     ],
-             [2     , 4     , 6     ],
+             [6     , 4     , 2     ],
              [np.nan, np.nan, np.nan]],
              dtype=np.float32
         )
-        
