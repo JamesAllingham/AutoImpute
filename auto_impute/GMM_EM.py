@@ -11,8 +11,8 @@ from scipy import linalg
 
 class GMM(Model):
 
-    def __init__(self, data, num_gaussians, ϵ=None, max_iters=None, verbose=None):
-        Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
+    def __init__(self, data, num_gaussians, verbose=None):
+        Model.__init__(self, data, verbose=verbose)
         self.num_gaussians = num_gaussians
         # self.μs = np.random.rand(self.num_gaussians, self.num_features)
         # self.Σs = np.stack([np.eye(self.num_features) for _ in range(self.num_gaussians)], axis=0)
@@ -27,10 +27,13 @@ class GMM(Model):
         self.Xs = np.array([])
         self.ps = np.array([])
 
-        best_ll = -np.inf
+        self.__calc_expectation()
+        self.__calc_ll()
 
+    def fit(self, max_iters=100, ϵ=1e-1):
+        best_ll = self.ll
         if self.verbose: print("Fitting model:")
-        for k in range(self.max_iters):
+        for k in range(max_iters):
             old_μs, old_Σs, old_expected_X, old_Xs, old_ps = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.ps.copy()
 
             # E-step
@@ -50,11 +53,9 @@ class GMM(Model):
                         qs[i, j] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo)
                         
                 else: # not actually too sure how to handle this situation
-                    qs[i, :] = np.random.random(num_gaussians)
+                    qs[i, :] = np.random.random(self.num_gaussians)
 
             self.ps = qs/np.sum(qs, axis=1, keepdims=True)
-            # print(self.ps)
-            # print(qs)
 
             # M-step
             # first fill in the missing values with each gaussian
@@ -107,8 +108,8 @@ class GMM(Model):
             
             self.__calc_expectation()
             # if the log likelihood stops improving then stop iterating
-            self.__log_likelihood()
-            if self.ll < best_ll or self.ll - best_ll < self.ϵ:
+            self.__calc_ll()
+            if self.ll < best_ll or self.ll - best_ll < ϵ:
                 self.μs, self.Σs, self.expected_X, self.Xs, self.ps = old_μs, old_Σs, old_expected_X, old_Xs, old_ps
                 self.ll = best_ll
                 break
@@ -146,7 +147,7 @@ class GMM(Model):
             
         self.Xs = Xs
 
-    def __log_likelihood(self):
+    def __calc_ll(self):
         ll = 0
         for i in range(self.N):
             tmp = 0

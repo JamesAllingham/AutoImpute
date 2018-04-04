@@ -29,8 +29,10 @@ def main(args):
 
     if args.gaussian_mixture:
         model = GMM_EM.GMM(data, 3, verbose=args.verbose)
+        model.fit()
     elif args.single_gaussian:
         model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
+        model.fit()
     else:
         model = MeanImpute.MeanImpute(data, verbose=args.verbose)
 

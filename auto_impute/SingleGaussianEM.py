@@ -11,24 +11,28 @@ from scipy import linalg
 
 class SingleGaussian(Model):
 
-    def __init__(self, data, ϵ=None, max_iters=None, verbose=None):
-        Model.__init__(self, data, ϵ=ϵ, max_iters=max_iters, verbose=verbose)        
+    def __init__(self, data, verbose=None):
+        Model.__init__(self, data, verbose=verbose)        
         # self.μ = np.random.rand(self.num_features)
         # self.Σ = np.random.rand(self.num_features, self.num_features)
         self.μ = np.nanmean(self.X, axis=0)
         self.Σ = np.nanmean([np.outer(self.X[i, :] - self.μ, self.X[i, :] - self.μ) for i in range(self.N)], axis=0)
 
+        self.__calc_expectation()
+        self.__calc_ll()
+
+    def fit(self, max_iters=100, ϵ=1e-1):
         # fit the model to the data
-        best_ll = -np.inf
+        best_ll = self.ll
 
         if self.verbose: print("Fitting model:")
-        for i in range(self.max_iters):
+        for i in range(max_iters):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
 
-            if i == 0:
-                # using the current parameters, estimate the values of the missing data:
-                # impute by taking the mean of the conditional distro
-                self.__calc_expectation()
+            # if i == 0:
+            #     # using the current parameters, estimate the values of the missing data:
+            #     # impute by taking the mean of the conditional distro
+            #     self.__calc_expectation()
 
             # now re-estimate μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
@@ -46,8 +50,8 @@ class SingleGaussian(Model):
             self.__calc_expectation()
 
             # if the log likelihood stops improving then stop iterating
-            self.__log_likelihood()
-            if self.ll < best_ll or self.ll - best_ll < self.ϵ:
+            self.__calc_ll()
+            if self.ll < best_ll or self.ll - best_ll < ϵ:
                 self.μ, self.Σ, self.expected_X = old_μ, old_Σ, old_expected_X
                 self.ll = best_ll
                 break
@@ -80,7 +84,7 @@ class SingleGaussian(Model):
             expected_X[i, :][m_locs] = μmo
         self.expected_X = expected_X
 
-    def __log_likelihood(self):
+    def __calc_ll(self):
         ll = 0
         for i in range(self.N):
             ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i, :], mean=self.μ, cov=self.Σ))

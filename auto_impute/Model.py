@@ -7,7 +7,7 @@ import numpy as np
 
 class Model(object):
 
-    def __init__(self, data, ϵ=None, max_iters=None, verbose=None):
+    def __init__(self, data, verbose=None):
         """Creates the model object and fits the model to the data.
         """
         # normalise the data for numerical stability
@@ -27,18 +27,6 @@ class Model(object):
 
         self.expected_X = np.array([])
         self.ll = None
-
-        # refused bequest
-        if ϵ is None:
-            self.ϵ = 1e-1
-        else:
-            self.ϵ = ϵ
-
-        # refused bequest
-        if max_iters is None:
-            self.max_iters = 100
-        else:
-            self.max_iters = max_iters
 
         if verbose is None:
             self.verbose = False
@@ -61,7 +49,7 @@ class Model(object):
         """
         return self.ll 
 
-    # def __log_likelihood(self):
+    # def __calc_ll(self):
     #     """Helper function for log likelihood.
     #     """
     #     raise NotImplementedError 
