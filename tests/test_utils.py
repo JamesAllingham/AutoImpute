@@ -10,12 +10,11 @@ class NoMissingValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
         # create a fake data file to impute
-        self.data = np.array(
-            [[1,2.5,0],
-             [12,5,6],
-             [-7,10,9]], 
-             dtype=np.float32
-        )
+        self.data = np.array([[   1,-2.5,  0],
+                              [  12,   5,6.5],
+                              [-7.5,  10, -9],
+                              [   0,   0,  4]],
+                              dtype=np.float32)
 
 class OneValueBaseTestCase(unittest.TestCase):
 
