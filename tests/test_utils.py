@@ -39,7 +39,7 @@ class TwoValuesBaseTestCase(unittest.TestCase):
 # Temporary test cases - not permanent features, just here to make sure I don't break things while refactoring code
 class BostonMCAR10BaseTestCase(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self):        
         try:
             self.data = np.genfromtxt("../data/boston-10-MCAR.csv", delimiter=",")
         except FileNotFoundError as e:
