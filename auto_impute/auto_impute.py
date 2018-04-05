@@ -15,9 +15,9 @@ def main(args):
     # set random seed
     if args.rand_seed: np.random.seed(args.rand_seed)
 
-    reader = csv_reader.CSVReader(args.file, args.delimiter, args.header)
+    reader = csv_reader.CSVReader(args.file, args.delimiter, args.header, args.indicator)
 
-    data = reader.get_raw_data()
+    data = reader.get_masked_data()
 
     if args.verbose:
         print("Read %s with %s rows and %s columns." % ((args.file, ) + data.shape))
@@ -61,6 +61,8 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument("-t", "--test", help="file to use for calculating RMSE",
                         type=str,default=None)
+    parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '')",
+                        type=str,default='')
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
