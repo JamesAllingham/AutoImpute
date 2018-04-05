@@ -5,36 +5,44 @@
 
 import unittest
 import numpy as np
+import numpy.ma as ma
 
 class NoMissingValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
         # create a fake data file to impute
-        self.data = np.array([[   1,-2.5,  0],
+        data = np.array([[   1,-2.5,  0],
                               [  12,   5,6.5],
                               [-7.5,  10, -9],
                               [   0,   0,  4]],
                               dtype=np.float32)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class OneValueBaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.array(
+        data = np.array(
             [[1     , np.nan, np.nan],
              [np.nan, 2     , np.nan],
              [np.nan, np.nan, 3     ]],
              dtype=np.float32
         )
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+        
 
 class TwoValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.array(
+        data = np.array(
             [[1     , 3     , 5     ],
              [6     , 4     , 2     ],
              [np.nan, np.nan, np.nan]],
              dtype=np.float32
         )
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 # Temporary test cases - not permanent features, just here to make sure I don't break things while refactoring code
 class BostonMCAR10BaseTestCase(unittest.TestCase):

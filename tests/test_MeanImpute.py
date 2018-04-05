@@ -6,6 +6,7 @@
 import unittest
 import sys
 import numpy as np
+import numpy.ma as ma 
 
 # add both the relative and absolute paths for the code to test
 sys.path.append("../auto_impute/")
@@ -72,7 +73,9 @@ class TwoValuesResultTestCase(TwoValuesBaseTestCase):
 class AllMissingValuesTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.array([np.nan]*9).reshape(3,3)
+        data = np.array([np.nan]*9).reshape(3,3)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
@@ -81,7 +84,9 @@ class AllMissingValuesTestCase(unittest.TestCase):
 class NoRowsTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.zeros(shape=(0,3), dtype=np.float32)
+        data = np.zeros(shape=(0,3), dtype=np.float32)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
@@ -90,7 +95,9 @@ class NoRowsTestCase(unittest.TestCase):
 class NoColsTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.zeros(shape=(3,0), dtype=np.float32)
+        data = np.zeros(shape=(3,0), dtype=np.float32)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
     def runTest(self):
         with self.assertRaises(RuntimeError):
