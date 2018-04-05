@@ -50,86 +50,106 @@ class BostonMCAR10BaseTestCase(unittest.TestCase):
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/boston-10-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/boston-10-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/boston-10-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/boston-10-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class BostonMCAR20BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/boston-20-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/boston-20-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/boston-20-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/boston-20-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class BostonMCAR30BaseTestCase(unittest.TestCase):
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/boston-30-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/boston-30-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/boston-30-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/boston-30-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class BostonMCAR40BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/boston-40-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/boston-40-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/boston-40-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/boston-40-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class BostonMCAR50BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/boston-50-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/boston-50-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/boston-50-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/boston-50-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class IrisMCAR10BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/iris-10-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/iris-10-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/iris-10-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/iris-10-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class IrisMCAR20BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/iris-20-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/iris-20-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/iris-20-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/iris-20-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class IrisMCAR30BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/iris-30-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/iris-30-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/iris-30-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/iris-30-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class IrisMCAR40BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/iris-40-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/iris-40-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/iris-40-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/iris-40-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
 
 class IrisMCAR50BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(42)
         try:
-            self.data = np.genfromtxt("../data/iris-50-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("../data/iris-50-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
-            self.data = np.genfromtxt("data/iris-50-MCAR.csv", delimiter=",")
+            data = np.genfromtxt("data/iris-50-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
