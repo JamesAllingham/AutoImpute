@@ -4,6 +4,7 @@
 # Imputation by replacing missing values with the mean for the collumn
 
 import numpy as np
+import numpy.ma as ma
 import warnings
 
 from Model import Model
@@ -13,9 +14,9 @@ class MeanImpute(Model):
     def __init__(self, data, verbose=None):
         Model.__init__(self, data, verbose=verbose)
 
-        self.expected_X = self.X
-        means = np.nanmean(self.X, axis=0)
-        missing_locs = np.isnan(self.X)
+        self.expected_X = self.X.data
+        means = ma.mean(self.X, axis=0)
+        missing_locs = self.X.mask
         self.expected_X[missing_locs] = means[np.where(missing_locs)[1]]
 
         ll = 0
