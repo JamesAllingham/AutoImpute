@@ -6,6 +6,7 @@
 from Model import Model
 
 import numpy as np
+import numpy.ma as ma
 from scipy import stats
 from scipy import linalg
 
@@ -15,11 +16,8 @@ class GMM(Model):
         Model.__init__(self, data, verbose=verbose)
         self.num_gaussians = num_gaussians
         indices = np.stack([np.random.choice(self.N, int(self.N/2)) for _ in range(self.num_gaussians)], axis=0)
-        self.μs = np.stack([np.nanmean(self.X[idx, :], axis=0) for idx in indices], axis=0)
-        self.Σs = np.stack(
-            [np.nanmean(
-                [np.outer(self.X[i, :] - μ, self.X[i, :] - μ) for i in idx], axis=0) for μ, idx in zip(self.μs, indices)]
-            , axis=0)
+        self.μs = np.stack([ma.mean(self.X[idx, :], axis=0).data for idx in indices], axis=0)
+        self.Σs = np.stack([ma.cov(self.X[idx, :], rowvar=False, bias=True).data for idx in indices], axis=0)
 
         self.Xs = np.array([])
         self.ps = np.random.rand(self.N, self.num_gaussians)
@@ -36,8 +34,9 @@ class GMM(Model):
             # E-step
             qs = np.zeros(shape=(self.N, self.num_gaussians))
             for i in range(self.N):
-                x_row = self.X[i, :]
-                o_locs = np.where(~np.isnan(x_row))[0]
+                x_row = self.X[i, :].data
+                mask_row = self.X[i, :].mask
+                o_locs = np.where(~mask_row)[0]
                 oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
 
                 x = x_row[o_locs]
@@ -71,12 +70,13 @@ class GMM(Model):
                 # calc C
                 C = np.zeros(shape=(self.num_features, self.num_features))
                 for i in range(self.N):
-                    x_row = self.X[i, :]
+                    x_row = self.X[i, :].data
+                    mask_row = self.X[i, :].mask
 
-                    if np.all(~np.isnan(x_row)): continue
+                    if np.all(~mask_row): continue
 
-                    o_locs = np.where(~np.isnan(x_row))[0]
-                    m_locs = np.where(np.isnan(x_row))[0]
+                    o_locs = np.where(~mask_row)[0]
+                    m_locs = np.where(mask_row)[0]
                     oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
                     mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
                     mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
@@ -115,15 +115,16 @@ class GMM(Model):
             if self.verbose: print("Iter: %s\t\tLL: %f" % (k, self.ll))
 
     def __calc_expectation(self): # should probably split this into two functions one for expected_X and one for Xs
-        Xs = np.stack([self.X]*self.num_gaussians, axis=0)
+        Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
 
         for i in range(self.N):
-            x_row = self.X[i, :]
+            x_row = self.X[i, :].data
+            mask_row = self.X[i, :].mask
 
-            if np.all(~np.isnan(x_row)): continue
+            if np.all(~mask_row): continue
 
-            o_locs = np.where(~np.isnan(x_row))[0]
-            m_locs = np.where(np.isnan(x_row))[0]
+            o_locs = np.where(~mask_row)[0]
+            m_locs = np.where(mask_row)[0]
             oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
             mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
 
@@ -137,7 +138,7 @@ class GMM(Model):
                     Xs[j, i, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
 
                 
-        self.expected_X = np.zeros_like(self.X)
+        self.expected_X = np.zeros_like(self.X.data)
         for j in range(self.num_gaussians):
             for i in range(self.N):
                 self.expected_X[i, :] += self.ps[i, j]*Xs[j, i, :]
@@ -154,24 +155,25 @@ class GMM(Model):
         self.ll = ll/self.N
 
     def sample(self, n):
-        sampled_Xs = np.stack([self.X]*n, axis=0)
+        sampled_Xs = np.stack([self.X.data]*n, axis=0)
 
         for i in range(self.N):
             # figure out the conditional distribution for the missing data given the observed data
-            x_row = self.X[i,:]
+            x_row = self.X[i, :].data
+            mask_row = self.X[i, :].mask
             # if there are no missing values then go to next iter
-            if np.all(~np.isnan(x_row)): continue
+            if np.all(~mask_row): continue
 
             # figure out which values are missing
-            o_locs = np.where(~np.isnan(x_row))[0]
-            m_locs = np.where(np.isnan(x_row))[0]
+            o_locs = np.where(~mask_row)[0]
+            m_locs = np.where(mask_row)[0]
             mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
             oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
             mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
 
             for j in range(n):
                 choice = np.random.choice(self.num_gaussians, p=self.ps[i, :])
-                μmo = self.μs[choice,m_locs]
+                μmo = self.μs[choice, m_locs]
 
                 if o_locs.size:
                     Σoo = self.Σs[choice, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
