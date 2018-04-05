@@ -7,9 +7,9 @@ import argparse
 import numpy as np
 
 import csv_reader
-import SingleGaussianEM
-import GMM_EM
-import MeanImpute
+import sg
+import gmm
+import mi
 
 def main(args):
     # set random seed
@@ -28,13 +28,13 @@ def main(args):
         print("Percentage missing elements: %s\n" % (np.mean(np.isnan(data)),))
 
     if args.gaussian_mixture:
-        model = GMM_EM.GMM(data, 3, verbose=args.verbose)
+        model = gmm.GMM(data, 3, verbose=args.verbose)
         model.fit()
     elif args.single_gaussian:
-        model = SingleGaussianEM.SingleGaussian(data, verbose=args.verbose)
+        model = sg.SingleGaussian(data, verbose=args.verbose)
         model.fit()
     else:
-        model = MeanImpute.MeanImpute(data, verbose=args.verbose)
+        model = mi.MeanImpute(data, verbose=args.verbose)
 
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)

@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import warnings
 
-from Model import Model
+from model import Model
 
 class MeanImpute(Model):
 

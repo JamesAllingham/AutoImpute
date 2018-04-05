@@ -11,10 +11,10 @@ import numpy as np
 sys.path.append("../auto_impute/")
 sys.path.append("auto_impute/")
 
-from GMM_EM import GMM
-import test_utils
+from gmm import GMM
+import testing_utils
 
-class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
+class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 
     def runTest(self):
         model = GMM(self.data, 3, verbose=False)
@@ -24,7 +24,7 @@ class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
 
         self.assertAlmostEqual(ll, -33.0724832763343)
 
-class BostonMCAR30LLTestCase(test_utils.BostonMCAR30BaseTestCase):
+class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
     def runTest(self):
         model = GMM(self.data, 3, verbose=False)

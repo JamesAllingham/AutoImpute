@@ -12,8 +12,8 @@ import numpy.ma as ma
 sys.path.append("../auto_impute/")
 sys.path.append("auto_impute/")
 
-from MeanImpute import MeanImpute
-from test_utils import NoMissingValuesBaseTestCase, OneValueBaseTestCase,TwoValuesBaseTestCase
+from mi import MeanImpute
+from testing_utils import NoMissingValuesBaseTestCase, OneValueBaseTestCase,TwoValuesBaseTestCase
 
 class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
 

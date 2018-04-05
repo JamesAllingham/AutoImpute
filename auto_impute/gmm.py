@@ -3,7 +3,7 @@
 # GMM_EM.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
-from Model import Model
+from model import Model
 from utilities import regularise_Σ
 
 import numpy as np
