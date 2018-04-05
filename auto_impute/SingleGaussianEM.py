@@ -4,6 +4,7 @@
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
 
 from Model import Model
+from utilities import regularise_Σ
 
 import numpy as np
 import numpy.ma as ma
@@ -15,7 +16,7 @@ class SingleGaussian(Model):
     def __init__(self, data, verbose=None):
         Model.__init__(self, data, verbose=verbose)
         self.μ = ma.mean(self.X, axis=0).data
-        self.Σ = ma.cov(self.X, rowvar=False, bias=True).data
+        self.Σ = regularise_Σ(ma.cov(self.X, rowvar=False).data + np.eye(self.num_features))
 
         self.__calc_expectation()
         self.__calc_ll()
@@ -30,12 +31,7 @@ class SingleGaussian(Model):
 
             # now re-estimate μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
-            self.Σ = np.cov(self.expected_X, rowvar=False, bias=True)
-            # self.Σ = np.zeros_like(self.Σ)
-            # for j in range(self.N):
-            #     diff = self.expected_X[j, :] - self.μ
-            #     self.Σ += np.outer(diff, diff.T)
-            # self.Σ = self.Σ/self.N 
+            self.Σ = np.cov(self.expected_X, rowvar=False)
 
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σ += np.eye(self.num_features)*1e-3

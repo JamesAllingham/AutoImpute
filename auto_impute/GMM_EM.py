@@ -4,6 +4,7 @@
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
 from Model import Model
+from utilities import regularise_Σ
 
 import numpy as np
 import numpy.ma as ma
@@ -17,7 +18,7 @@ class GMM(Model):
         self.num_gaussians = num_gaussians
         indices = np.stack([np.random.choice(self.N, int(self.N/2)) for _ in range(self.num_gaussians)], axis=0)
         self.μs = np.stack([ma.mean(self.X[idx, :], axis=0).data for idx in indices], axis=0)
-        self.Σs = np.stack([ma.cov(self.X[idx, :], rowvar=False, bias=True).data for idx in indices], axis=0)
+        self.Σs = np.stack([regularise_Σ(ma.cov(self.X[idx, :], rowvar=False).data) for idx in indices], axis=0)
 
         self.Xs = np.array([])
         self.ps = np.random.rand(self.N, self.num_gaussians)
@@ -101,7 +102,7 @@ class GMM(Model):
                 self.Σs[j] /= np.sum(p)
                 self.Σs[j] += C
                 # regularisation term ensuring that the cov matrix is always pos def
-                self.Σs[j] += np.eye(self.num_features)*1
+                self.Σs[j] += np.eye(self.num_features)*1e-3
             
             self.__calc_expectation()
             # if the log likelihood stops improving then stop iterating
