@@ -36,8 +36,7 @@ class NoMissingValuesInitialLLTestCase(test_utils.NoMissingValuesBaseTestCase):
 
 class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
 
-    def runTest(self):
-        np.random.seed(42)
+    def runTest(self):        
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -48,7 +47,6 @@ class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
 class BostonMCAR20LLTestCase(test_utils.BostonMCAR20BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -59,7 +57,6 @@ class BostonMCAR20LLTestCase(test_utils.BostonMCAR20BaseTestCase):
 class BostonMCAR30LLTestCase(test_utils.BostonMCAR30BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -70,7 +67,6 @@ class BostonMCAR30LLTestCase(test_utils.BostonMCAR30BaseTestCase):
 class IrisMCAR10LLTestCase(test_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -81,7 +77,6 @@ class IrisMCAR10LLTestCase(test_utils.IrisMCAR10BaseTestCase):
 class IrisMCAR20LLTestCase(test_utils.IrisMCAR20BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -92,7 +87,6 @@ class IrisMCAR20LLTestCase(test_utils.IrisMCAR20BaseTestCase):
 class IrisMCAR40LLTestCase(test_utils.IrisMCAR40BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
@@ -103,7 +97,6 @@ class IrisMCAR40LLTestCase(test_utils.IrisMCAR40BaseTestCase):
 class IrisMCAR50LLTestCase(test_utils.IrisMCAR50BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 

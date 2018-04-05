@@ -17,7 +17,6 @@ import test_utils
 class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = GMM(self.data, 3, verbose=False)
         model.fit()
 
@@ -28,7 +27,6 @@ class BostonMCAR10LLTestCase(test_utils.BostonMCAR10BaseTestCase):
 class BostonMCAR30LLTestCase(test_utils.BostonMCAR30BaseTestCase):
 
     def runTest(self):
-        np.random.seed(42)
         model = GMM(self.data, 3, verbose=False)
         model.fit()
 

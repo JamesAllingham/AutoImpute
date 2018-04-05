@@ -40,6 +40,7 @@ class TwoValuesBaseTestCase(unittest.TestCase):
 class BostonMCAR10BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/boston-10-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -48,6 +49,7 @@ class BostonMCAR10BaseTestCase(unittest.TestCase):
 class BostonMCAR20BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/boston-20-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -55,6 +57,7 @@ class BostonMCAR20BaseTestCase(unittest.TestCase):
 
 class BostonMCAR30BaseTestCase(unittest.TestCase):
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/boston-30-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -63,6 +66,7 @@ class BostonMCAR30BaseTestCase(unittest.TestCase):
 class BostonMCAR40BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/boston-40-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -71,6 +75,7 @@ class BostonMCAR40BaseTestCase(unittest.TestCase):
 class BostonMCAR50BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/boston-50-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -79,6 +84,7 @@ class BostonMCAR50BaseTestCase(unittest.TestCase):
 class IrisMCAR10BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/iris-10-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -87,6 +93,7 @@ class IrisMCAR10BaseTestCase(unittest.TestCase):
 class IrisMCAR20BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/iris-20-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -95,6 +102,7 @@ class IrisMCAR20BaseTestCase(unittest.TestCase):
 class IrisMCAR30BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/iris-30-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -103,6 +111,7 @@ class IrisMCAR30BaseTestCase(unittest.TestCase):
 class IrisMCAR40BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/iris-40-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
@@ -111,6 +120,7 @@ class IrisMCAR40BaseTestCase(unittest.TestCase):
 class IrisMCAR50BaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         try:
             self.data = np.genfromtxt("../data/iris-50-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
