@@ -5,6 +5,7 @@
 
 import numpy as np
 import numpy.ma as ma
+from scipy import stats
 import warnings
 
 from model import Model
@@ -21,7 +22,7 @@ class MeanImpute(Model):
 
         ll = 0
         for i in range(self.N):
-            ll += np.log(np.array_equal(means, self.expected_X[i, :]))
+            ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i, :], mean=means, cov=np.ones(means.size)*1e-3))
         self.ll = ll/self.N
 
 
