@@ -1,6 +1,6 @@
 # James Allingham
 # March 2018
-# GMM_EM.py
+# gmm.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
 from model import Model

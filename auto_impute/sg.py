@@ -1,6 +1,6 @@
 # James Allingham
 # March 2018
-# SingleGaussianEM.py
+# sg.py
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
 
 from model import Model

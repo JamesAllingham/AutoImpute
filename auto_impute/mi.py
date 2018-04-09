@@ -1,6 +1,6 @@
 # James Allingham
 # April 2018
-# MeanImpute.py
+# mi.py
 # Imputation by replacing missing values with the mean for the collumn
 
 import numpy as np
