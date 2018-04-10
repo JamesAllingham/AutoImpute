@@ -18,8 +18,8 @@ class SingleGaussian(Model):
         self.μ = ma.mean(self.X, axis=0).data
         self.Σ = regularise_Σ(ma.cov(self.X, rowvar=False).data + np.eye(self.num_features))
 
-        self.__calc_expectation()
-        self.__calc_ll()
+        self._calc_expectation()
+        self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
         # fit the model to the data
@@ -38,10 +38,10 @@ class SingleGaussian(Model):
             
             # using the current parameters, estimate the values of the missing data (E-step)
             # impute by taking the mean of the conditional distro
-            self.__calc_expectation()
+            self._calc_expectation()
 
             # if the log likelihood stops improving then stop iterating
-            self.__calc_ll()
+            self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
                 self.μ, self.Σ, self.expected_X = old_μ, old_Σ, old_expected_X
                 self.ll = best_ll
@@ -51,7 +51,7 @@ class SingleGaussian(Model):
 
             if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
             
-    def __calc_expectation(self):
+    def _calc_expectation(self):
         expected_X = self.X.data.copy()
         for i in range(self.N):
             x_row = expected_X[i, :]
@@ -76,7 +76,7 @@ class SingleGaussian(Model):
             expected_X[i, :][m_locs] = μmo
         self.expected_X = expected_X
 
-    def __calc_ll(self):
+    def _calc_ll(self):
         ll = 0
         for i in range(self.N):
             ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i, :], mean=self.μ, cov=self.Σ))

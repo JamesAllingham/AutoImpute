@@ -17,24 +17,29 @@ class BGMM(Model):
         self.num_gaussians = num_gaussians
 
         # hyper-parameters
-        self.α0 = 1e-3
+        self.α0 = np.array([1e-3]*self.num_gaussians)
         self.m0 = np.zeros(shape=(self.num_features,))
         self.β0 = 1
         self.W0 = np.eye(self.num_features)
         self.ν0 = self.num_features
 
-        self.Xs = np.array([])
+        # updated params
+        self.αk = self.α0
+        self.mk = self.m0
+        self.βk = self.β0
+        self.Wk = self.W0
+        self.νk = self.ν0
 
-        self.__calc_expectation()
-        self.__calc_ll()
+        self._calc_expectation()
+        self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
         pass
 
-    def __calc_expectation(self):
+    def _calc_expectation(self):
         pass
     
-    def __calc_ll(self):
+    def _calc_ll(self):
         pass
 
     def sample(self, n):
