@@ -78,7 +78,7 @@ class BGMM(Model):
             W_inv = linalg.inv(self.W0)
             W_inv += 1/Ns[k]*np.sum(self.rs*np.outer(x_rep - x_bar, x_rep - x_bar), axis=0)
             W_inv += self.β0*Ns[k]/(self.β0 + Ns[k])*np.outer(x_bar - self.m0, x_bar - self.m0)
-            self.Ws[k] = np.linalg.inv(Ws_inv)
+            self.Ws[k] = np.linalg.inv(W_inv)
 
     def _calc_expectation(self):
         pass
