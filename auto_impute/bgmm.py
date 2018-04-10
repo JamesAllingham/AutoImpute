@@ -68,7 +68,7 @@ class BGMM(Model):
             x_rep = self.X.data.copy()
             for n in range(self.N):
                 m_locs = np.where(self.X[n, :].mask)
-                x_rep[n, m_locs] = self.ms[k][m_locs]
+                x_rep[n, m_locs] = prev_ms[k][m_locs]
 
             x_bar = 1/Ns[k]*np.sum(self.rs[k, :] * x_rep, axis=0)
 
