@@ -23,7 +23,7 @@ class GMM(Model):
         self.Xs = np.array([])
         self.ps = np.random.rand(self.N, self.num_gaussians)
 
-        self._calc_expectation()
+        self._calc_ML_est()
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
@@ -56,7 +56,7 @@ class GMM(Model):
 
             # M-step
             # first fill in the missing values with each gaussian
-            self._calc_expectation()  
+            self._calc_ML_est()  
             
             # now recompute μs
             for j in range(self.num_gaussians):
@@ -104,7 +104,7 @@ class GMM(Model):
                 # regularisation term ensuring that the cov matrix is always pos def
                 self.Σs[j] += np.eye(self.num_features)*1e-3
             
-            self._calc_expectation()
+            self._calc_ML_est()
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
@@ -115,7 +115,7 @@ class GMM(Model):
             best_ll = self.ll
             if self.verbose: print("Iter: %s\t\tLL: %f" % (k, self.ll))
 
-    def _calc_expectation(self): # should probably split this into two functions one for expected_X and one for Xs
+    def _calc_ML_est(self): # should probably split this into two functions one for expected_X and one for Xs
         Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
 
         for i in range(self.N):

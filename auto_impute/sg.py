@@ -18,7 +18,7 @@ class SingleGaussian(Model):
         self.μ = ma.mean(self.X, axis=0).data
         self.Σ = regularise_Σ(ma.cov(self.X, rowvar=False).data + np.eye(self.num_features))
 
-        self._calc_expectation()
+        self._calc_ML_est()
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
@@ -38,7 +38,7 @@ class SingleGaussian(Model):
             
             # using the current parameters, estimate the values of the missing data (E-step)
             # impute by taking the mean of the conditional distro
-            self._calc_expectation()
+            self._calc_ML_est()
 
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
@@ -51,7 +51,7 @@ class SingleGaussian(Model):
 
             if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
             
-    def _calc_expectation(self):
+    def _calc_ML_est(self):
         expected_X = self.X.data.copy()
         for i in range(self.N):
             x_row = expected_X[i, :]
