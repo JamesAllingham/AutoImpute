@@ -6,7 +6,6 @@
 from model import Model
 
 import numpy as np
-import numpy.ma as ma
 from scipy import stats
 from scipy import linalg
 from scipy import special
@@ -33,12 +32,30 @@ class BGMM(Model):
         self.Ws = [self.W0]*self.num_gaussians
         self.νs = [self.ν0]*self.num_gaussians
 
-        self._calc_expectation()
+        self._calc_ML_est()
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
-        pass
+        if self.verbose: print("Fitting model:")
 
+        for i in range(max_iters):
+            old_αs, old_ms, old_βs, old_Ws, old_νs = self.αs, self.ms, self.βs, self.Ws, self.νs
+
+            # do one iteration of inference
+            self._calc_rs()
+            self._calc_updated_params()
+
+            # update the ML imputation and the LL
+            self._calc_ML_est()
+            self._calc_ll()
+            
+            if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
+
+            if np.linalg.norm(old_αs - self.αs) + np.linalg.norm(old_ms - self.ms) + np.linalg.norm(old_βs - self.βs) \
+                + np.linalg.norm(old_Ws - self.Ws) + np.linalg.norm(old_νs - self.νs) <= ϵ:
+                break
+
+    # "E-step"
     def _calc_rs(self):
         log_πs = special.digamma(self.αs) - special.digamma(np.sum(self.αs))
         
@@ -59,8 +76,12 @@ class BGMM(Model):
         ps = np.exp(log_ps)
         self.rs = ps/np.sum(ps, axis=1, keepdims=True)
 
+    # "M-step"
     def _calc_updated_params(self):
         Ns = np.sum(self.rs, axis=0)
+
+        self.αs = Ns + self.α0
+
         prev_ms = self.ms.copy()
         
         for k in range(self.num_gaussians):
@@ -80,7 +101,7 @@ class BGMM(Model):
             W_inv += self.β0*Ns[k]/(self.β0 + Ns[k])*np.outer(x_bar - self.m0, x_bar - self.m0)
             self.Ws[k] = np.linalg.inv(W_inv)
 
-    def _calc_expectation(self):
+    def _calc_ML_est(self):
         pass
     
     def _calc_ll(self):
