@@ -18,7 +18,7 @@ class BGMM(Model):
 
         # hyper-parameters
         self.α0 = 1e-3
-        self.m0 = np.zeros(shape=(self.num_features,))
+        self.m0 = np.zeros(shape=(self.num_features, ))
         self.β0 = 1
         self.W0 = np.eye(self.num_features)
         self.ν0 = self.num_features
@@ -32,6 +32,7 @@ class BGMM(Model):
         self.Ws = [self.W0]*self.num_gaussians
         self.νs = [self.ν0]*self.num_gaussians
 
+        self._calc_rs()
         self._calc_ML_est()
         self._calc_ll()
 
@@ -51,8 +52,8 @@ class BGMM(Model):
             
             if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
 
-            if np.linalg.norm(old_αs - self.αs) + np.linalg.norm(old_ms - self.ms) + np.linalg.norm(old_βs - self.βs) \
-                + np.linalg.norm(old_Ws - self.Ws) + np.linalg.norm(old_νs - self.νs) <= ϵ:
+            if np.linalg.norm(old_αs - np.array(self.αs)) + np.linalg.norm(old_ms - np.array(self.ms)) + np.linalg.norm(old_βs - np.array(self.βs)) \
+                + np.linalg.norm(old_Ws - np.array(self.Ws)) + np.linalg.norm(old_νs - np.array(self.νs)) <= ϵ:
                 break
 
     # "E-step"
@@ -61,20 +62,23 @@ class BGMM(Model):
         
         log_ps = np.stack([log_πs]*self.N, axis=0)
         for n in range(self.N):
-            o_locs = np.where(~self.X[n, :].mask)
+            o_locs = np.where(~self.X[n, :].mask)[0]
             oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
             x_row = self.X[n,:].data
-            log_ps[n, :] += 0.5*np.log(np.array([self.Ws[k][o_locs, o_locs] for k in self.num_gaussians]))
+            log_ps[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(len(o_locs), len(o_locs))) for k in range(self.num_gaussians)]))
+
             log_ps[n, :] += np.array(
                     [0.5*np.sum(
                             [special.digamma(0.5*(self.νs[k] - self.num_features + len(o_locs) + 1 - i)) for i in range(len(o_locs))]
-                        ) for k in self.num_gaussians
+                        ) for k in range(self.num_gaussians)
                     ]
                 )
-            log_ps[n, :] -= 0.5*np.array([self.βs[k]*(self.νs[k] - self.num_features + len(o_locs))*(x_row[o_locs] - self.ms[k][o_locs]).T @ self.Ws[k][oo_coords] @ (x_row[o_locs] - self.ms[k][o_locs]) for k in self.num_gaussians]) 
+            log_ps[n, :] -= 0.5*np.array([self.βs[k]*(self.νs[k] - self.num_features + len(o_locs))*(x_row[o_locs] - self.ms[k][o_locs]).T @ self.Ws[k][oo_coords].reshape(len(o_locs), len(o_locs)) @ (x_row[o_locs] - self.ms[k][o_locs]) for k in range(self.num_gaussians)]) 
 
-        ps = np.exp(log_ps)
+        ps = np.exp(log_ps) + 1e-9
         self.rs = ps/np.sum(ps, axis=1, keepdims=True)
+        
+        print(self.rs)
 
     # "M-step"
     def _calc_updated_params(self):
@@ -91,21 +95,75 @@ class BGMM(Model):
                 m_locs = np.where(self.X[n, :].mask)
                 x_rep[n, m_locs] = prev_ms[k][m_locs]
 
-            x_bar = 1/Ns[k]*np.sum(self.rs[k, :] * x_rep, axis=0)
+            x_bar = 1/Ns[k]*np.sum(self.rs[:, k, np.newaxis] * x_rep, axis=0)
 
             self.βs[k] = self.β0 + Ns[k]
             self.νs[k] = self.ν0 + Ns[k]
-            self.ms[k] = 1/self.βs[k](self.β0*self.m0 + Ns[k]*x_bar)
+            self.ms[k] = 1/self.βs[k]*(self.β0*self.m0 + Ns[k]*x_bar)
             W_inv = linalg.inv(self.W0)
-            W_inv += 1/Ns[k]*np.sum(self.rs*np.outer(x_rep - x_bar, x_rep - x_bar), axis=0)
+            W_inv += 1/Ns[k]*np.einsum('ij,ikl->kl', self.rs[:, k, np.newaxis], np.einsum('ij,ik->ijk' ,x_rep - x_bar, x_rep - x_bar))
             W_inv += self.β0*Ns[k]/(self.β0 + Ns[k])*np.outer(x_bar - self.m0, x_bar - self.m0)
             self.Ws[k] = np.linalg.inv(W_inv)
 
     def _calc_ML_est(self):
-        pass
+        # Note: the expectation for each mean is simply self.ms[k],
+        # similarly, the expectation for the precision is self.νs[k]*self.Ws[k]
+        Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
+
+        for n in range(self.N):
+            x_row = self.X[n, :].data
+            mask_row = self.X[n, :].mask
+
+            if np.all(~mask_row): continue
+
+            o_locs = np.where(~mask_row)[0]
+            m_locs = np.where(mask_row)[0]
+            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+
+            for k in range(self.num_gaussians):
+                μ_k = self.ms[k]
+                Λ_k = self.νs[k]*self.Ws[k]
+                Xs[k, n, m_locs] = μ_k[m_locs]
+
+                if o_locs.size:
+                    Σ = np.linalg.inv(Λ_k[mm_coords].reshape(len(m_locs), len(m_locs)))
+                    Xs[k, n, m_locs] -= Σ @ Λ_k[mo_coords].reshape(len(m_locs), len(o_locs)) @ (x_row[o_locs] - μ_k[o_locs])
+                
+        self.expected_X = np.zeros_like(self.X.data)
+        for k in range(self.num_gaussians):
+            for n in range(self.N):
+                self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
     
     def _calc_ll(self):
-        pass
+        ll = 0
+        for n in range(self.N):
+            x_row = self.X[n, :].data
+            mask_row = self.X[n, :].mask
+
+            if np.all(~mask_row): continue
+
+            o_locs = np.where(~mask_row)[0]
+            m_locs = np.where(mask_row)[0]
+            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+
+            tmp = 0
+            for k in range(self.num_gaussians):
+                μ_k = self.ms[k]
+                Λ_k = self.νs[k]*self.Ws[k]
+
+                # now the mean and var for the missing data given the seen data
+                var = np.linalg.inv(Λ_k[mm_coords].reshape(len(m_locs), len(m_locs)))
+                mean = μ_k[m_locs]
+                if o_locs.size:
+                    mean -= var @ Λ_k[mo_coords].reshape(len(m_locs), len(o_locs)) @ (x_row[o_locs] - μ_k[o_locs])
+
+                
+                tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=mean, cov=var)
+
+            ll += np.log(tmp)
+        self.ll = ll/self.N
 
     def sample(self, n):
         pass
