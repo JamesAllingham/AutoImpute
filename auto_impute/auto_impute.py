@@ -9,6 +9,7 @@ import numpy as np
 import csv_reader
 import sg
 import gmm
+import bgmm
 import mi
 
 def main(args):
@@ -27,6 +28,9 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(data.mask),))
 
+    if args.bayesian_gmm:
+        model = bgmm.BGMM(data, 6, verbose=args.verbose)
+        model.fit()
     if args.gaussian_mixture:
         model = gmm.GMM(data, 3, verbose=args.verbose)
         model.fit()
@@ -74,6 +78,8 @@ if __name__ == "__main__":
     model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
                              action="store_true")
     model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
+                             action="store_true")
+    model_group.add_argument("-bgmm", "--bayesian_gmm", help="impute using a Gaussian mixture model fitted with Variational Bayes",
                              action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
