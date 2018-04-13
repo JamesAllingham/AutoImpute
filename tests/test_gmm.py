@@ -22,7 +22,7 @@ class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -33.0724832763343)
+        self.assertAlmostEqual(ll, -3.3211329403232157)
 
 class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
@@ -32,4 +32,4 @@ class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -31.71329520444794)
+        self.assertAlmostEqual(ll, -7.39006833658436)
