@@ -10,15 +10,28 @@ import numpy as np
 import numpy.ma as ma
 from scipy import stats
 from scipy import linalg
+from sklearn.cluster import KMeans
 
 class GMM(Model):
 
     def __init__(self, data, num_gaussians, verbose=None):
         Model.__init__(self, data, verbose=verbose)
         self.num_gaussians = num_gaussians
-        indices = np.stack([np.random.choice(self.N, int(self.N/2)) for _ in range(self.num_gaussians)], axis=0)
-        self.μs = np.stack([ma.mean(self.X[idx, :], axis=0).data for idx in indices], axis=0)
-        self.Σs = np.stack([regularise_Σ(ma.cov(self.X[idx, :], rowvar=False).data) for idx in indices], axis=0)
+
+        # use k-means to initialise params
+        self.rs = np.zeros(shape=(self.N, self.num_gaussians))
+        mean_imputed_X = self.X.data.copy()
+        mean_imputed_X[self.X.mask] = ma.mean(self.X, axis=0)[np.where(self.X.mask)[1]]
+        kmeans = KMeans(n_clusters=self.num_gaussians, random_state=0).fit(mean_imputed_X)
+        self.rs[np.arange(self.N), kmeans.labels_] = 1
+        self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_gaussians)], axis=0)
+        self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_gaussians)], axis=0)
+
+        # for k in range(self.num_gaussians):
+        #     print(self.μs[k])
+        #     print(self.Σs[k])
+        # print(kmeans.labels_)
+        # print(mean_imputed_X)
 
         self.Xs = np.array([])
         self.rs = np.random.rand(self.N, self.num_gaussians)
