@@ -14,16 +14,35 @@ from sklearn.cluster import KMeans
 
 class BGMM(Model):
 
-    def __init__(self, data, num_gaussians, verbose=None):
+    def __init__(self, data, num_gaussians, verbose=None, α0=None, m0=None, β0=None, W0=None, ν0=None):
         Model.__init__(self, data, verbose=verbose)
         self.num_gaussians = num_gaussians
 
         # hyper-parameters
-        self.α0 = 1e-3
-        self.m0 = np.zeros(shape=(self.num_features, ))
-        self.β0 = 1
-        self.W0 = np.eye(self.num_features)
-        self.ν0 = self.num_features
+        if α0 is not None:
+            self.α0 = α0
+        else:
+            self.α0 = 1e-3
+
+        if m0 is not None:
+            self.m0 = m0
+        else:
+            self.m0 = np.zeros(shape=(self.num_features, ))
+        
+        if β0 is not None:
+            self.β0 = β0
+        else:
+            self.β0 = 1
+
+        if W0 is not None:
+            self.W0 = W0
+        else:
+            self.W0 = np.eye(self.num_features)
+        
+        if ν0 is not None:
+            self.ν0 = ν0
+        else:
+            self.ν0 = self.num_features
 
         self.rs = np.zeros(shape=(self.N, self.num_gaussians))
 
