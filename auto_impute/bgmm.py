@@ -4,7 +4,6 @@
 # Imputation using a Gaussian Mixture Model fitted using variational Bayes
 
 from model import Model
-from utilities import regularise_Σ
 
 import numpy as np
 import numpy.ma as ma
@@ -29,28 +28,22 @@ class BGMM(Model):
         self.rs = np.zeros(shape=(self.N, self.num_gaussians))
 
         # intial params
-        # use k-means to initialise the means and covs
+        # use k-means to initialise the responsibilities
         self.ms  = [np.zeros(shape=(self.num_features,))]*self.num_gaussians
         self.Ws = [np.zeros(shape=(self.num_features, self.num_features))]*self.num_gaussians
         mean_imputed_X = self.X.data.copy()
         mean_imputed_X[self.X.mask] = ma.mean(self.X, axis=0)[np.where(self.X.mask)[1]]
-        # mean_imputed_X += np.random.random(mean_imputed_X.shape)*0.01
         kmeans = KMeans(n_clusters=self.num_gaussians, random_state=0).fit(mean_imputed_X)
         self.rs[np.arange(self.N), kmeans.labels_] = 1
-        # for k in range(num_gaussians):
-        #     locs = np.where(kmeans.labels_ == k)[0]
-        #     self.ms[k] = np.mean(mean_imputed_X[locs, :], axis=0)
-        #     self.Ws[k] = np.cov(mean_imputed_X[locs, :], rowvar=False)
-        
-        # Ns = np.sum(self.rs, axis=0)
-
-        # self.αs = [Ns[k] + self.α0 for k in range(self.num_gaussians)]
 
         self.αs = [self.α0]*self.num_gaussians
         self.βs = [self.β0]*self.num_gaussians
         self.νs = [self.ν0]*self.num_gaussians
 
         self._calc_updated_params()
+
+        self._calc_ML_est()
+        self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
         if self.verbose: print("Fitting model:")
