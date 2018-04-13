@@ -21,7 +21,7 @@ class GMM(Model):
         self.Σs = np.stack([regularise_Σ(ma.cov(self.X[idx, :], rowvar=False).data) for idx in indices], axis=0)
 
         self.Xs = np.array([])
-        self.ps = np.random.rand(self.N, self.num_gaussians)
+        self.rs = np.random.rand(self.N, self.num_gaussians)
 
         self._calc_ML_est()
         self._calc_ll()
@@ -30,90 +30,95 @@ class GMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_expected_X, old_Xs, old_ps = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.ps.copy()
+            old_μs, old_Σs, old_expected_X, old_Xs, old_ps = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.rs.copy()
 
             # E-step
-            qs = np.zeros(shape=(self.N, self.num_gaussians))
-            for n in range(self.N):
-                x_row = self.X[n, :].data
-                mask_row = self.X[n, :].mask
-                o_locs = np.where(~mask_row)[0]
-                oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-
-                x = x_row[o_locs]
-                sz = len(x)
-                if sz:
-                    for k in range(self.num_gaussians):
-                        Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
-                        μo = self.μs[k, o_locs]
-
-                        qs[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo)
-                        
-                else: # not actually too sure how to handle this situation
-                    qs[n, :] = np.mean(self.ps, axis=0)
-
-            self.ps = qs/np.sum(qs, axis=1, keepdims=True)
+            self._calc_rs()
 
             # M-step
-            # first fill in the missing values with each gaussian
-            self._calc_ML_est()  
-            
-            # now recompute μs
-            for k in range(self.num_gaussians):
-                p = self.ps[:, k]
-                self.μs[k] = (p @ self.Xs[k])/np.sum(p)
-
-            # and now Σs
-            for k in range(self.num_gaussians):
-
-                p = self.ps[:, k]
-
-                # calc C
-                C = np.zeros(shape=(self.num_features, self.num_features))
-                for n in range(self.N):
-                    x_row = self.X[n, :].data
-                    mask_row = self.X[n, :].mask
-
-                    if np.all(~mask_row): continue
-
-                    o_locs = np.where(~mask_row)[0]
-                    m_locs = np.where(mask_row)[0]
-                    oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-                    mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-                    mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
-
-                    Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
-
-                    tmp = Σmm
-                    if o_locs.size:
-                        Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                        Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs)) 
-                        tmp -= Σmo @ linalg.inv(Σoo) @ Σmo.T
-
-                    tmp = p[n]/np.sum(p)*tmp
-                    C[mm_coords] += tmp.reshape(len(m_locs)**2)
-                    
-
-                self.Σs[k] = np.zeros_like(C)
-                for n in range(self.N):
-                    diff = self.Xs[k, n, :] - self.μs[k]
-                    self.Σs[k] += np.outer(diff, diff.T)*p[n]
-
-                self.Σs[k] /= np.sum(p)
-                self.Σs[k] += C
-                # regularisation term ensuring that the cov matrix is always pos def
-                self.Σs[k] += np.eye(self.num_features)*1e-3
+            self._update_params()
             
             self._calc_ML_est()
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.expected_X, self.Xs, self.ps = old_μs, old_Σs, old_expected_X, old_Xs, old_ps
+                self.μs, self.Σs, self.expected_X, self.Xs, self.rs = old_μs, old_Σs, old_expected_X, old_Xs, old_ps
                 self.ll = best_ll
                 break
             
             best_ll = self.ll
             if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
+
+    def _calc_rs(self):
+        ps = np.zeros(shape=(self.N, self.num_gaussians))
+        for n in range(self.N):
+            x_row = self.X[n, :].data
+            mask_row = self.X[n, :].mask
+            o_locs = np.where(~mask_row)[0]
+            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
+
+            x = x_row[o_locs]
+            sz = len(x)
+            if sz:
+                for k in range(self.num_gaussians):
+                    Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
+                    μo = self.μs[k, o_locs]
+
+                    ps[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo)
+                    
+            else: # not actually too sure how to handle this situation
+                ps[n, :] = np.mean(self.rs, axis=0)
+
+        self.rs = ps/np.sum(ps, axis=1, keepdims=True)
+
+    def _update_params(self):
+        # first fill in the missing values with each gaussian
+        self._calc_ML_est()  
+        
+        # now recompute μs
+        for k in range(self.num_gaussians):
+            p = self.rs[:, k]
+            self.μs[k] = (p @ self.Xs[k])/np.sum(p)
+
+        # and now Σs
+        for k in range(self.num_gaussians):
+
+            p = self.rs[:, k]
+
+            # calc C
+            C = np.zeros(shape=(self.num_features, self.num_features))
+            for n in range(self.N):
+                mask_row = self.X[n, :].mask
+
+                if np.all(~mask_row): continue
+
+                o_locs = np.where(~mask_row)[0]
+                m_locs = np.where(mask_row)[0]
+                oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
+                mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+                mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+
+                Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
+
+                tmp = Σmm
+                if o_locs.size:
+                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
+                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs)) 
+                    tmp -= Σmo @ linalg.inv(Σoo) @ Σmo.T
+
+                tmp = p[n]/np.sum(p)*tmp
+                C[mm_coords] += tmp.reshape(len(m_locs)**2)
+                
+
+            self.Σs[k] = np.zeros_like(C)
+            for n in range(self.N):
+                diff = self.Xs[k, n, :] - self.μs[k]
+                self.Σs[k] += np.outer(diff, diff.T)*p[n]
+
+            self.Σs[k] /= np.sum(p)
+            self.Σs[k] += C
+            # regularisation term ensuring that the cov matrix is always pos def
+            self.Σs[k] += np.eye(self.num_features)*1e-3
 
     def _calc_ML_est(self): # should probably split this into two functions one for expected_X and one for Xs
         Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
@@ -142,7 +147,7 @@ class GMM(Model):
         self.expected_X = np.zeros_like(self.X.data)
         for k in range(self.num_gaussians):
             for n in range(self.N):
-                self.expected_X[n, :] += self.ps[n, k]*Xs[k, n, :]
+                self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
             
         self.Xs = Xs
 
@@ -173,7 +178,7 @@ class GMM(Model):
 
                 Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
-                tmp += self.ps[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm)
+                tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm)
             lls.append(np.log(tmp))
         self.ll = np.mean(lls)
 
@@ -195,7 +200,7 @@ class GMM(Model):
             mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
 
             for i in range(num_samples):
-                choice = np.random.choice(self.num_gaussians, p=self.ps[n, :])
+                choice = np.random.choice(self.num_gaussians, p=self.rs[n, :])
                 μmo = self.μs[choice, m_locs]
 
                 if o_locs.size:
