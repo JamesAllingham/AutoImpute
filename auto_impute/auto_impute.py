@@ -31,7 +31,7 @@ def main(args):
     if args.bayesian_gmm:
         model = bgmm.BGMM(data, 6, verbose=args.verbose)
         model.fit()
-    if args.gaussian_mixture:
+    elif args.gaussian_mixture:
         model = gmm.GMM(data, 3, verbose=args.verbose)
         model.fit()
     elif args.single_gaussian:
