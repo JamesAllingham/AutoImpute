@@ -20,12 +20,19 @@ class MeanImpute(Model):
         missing_locs = self.X.mask
         self.expected_X[missing_locs] = means[np.where(missing_locs)[1]]
 
-        ll = 0
-        for i in range(self.N):
-            ll += np.log(stats.multivariate_normal.pdf(self.expected_X[i, :], mean=means, cov=np.ones(means.size)*1e-3))
-        self.ll = ll/self.N
+        lls = []
+        for n in range(self.N):
+            x_row = self.X[n, :].data
+            mask_row = self.X[n, :].mask
+
+            if np.all(~mask_row): continue
+
+            m_locs = np.where(mask_row)[0]
+
+            lls.append(np.log(stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=means[m_locs], cov=np.ones(m_locs.size)*1e-3)))
+        self.ll = np.mean(lls)
 
 
-    def sample(self, n):
+    def sample(self, num_samples):
         warnings.warn("Cannot sample from a mean imputation. Returning the means.")
         return self.expected_X

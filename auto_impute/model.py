@@ -45,7 +45,7 @@ class Model(object):
         """
         return self.ll
 
-    def sample(self, n):
+    def sample(self, num_samples):
         """Samples from the density.
         """
         raise NotImplementedError

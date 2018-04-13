@@ -158,7 +158,7 @@ class BGMM(Model):
                 self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
     
     def _calc_ll(self):
-        ll = 0
+        lls = []
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
@@ -183,8 +183,8 @@ class BGMM(Model):
 
                 tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=mean, cov=var)
 
-            ll += np.log(tmp)
-        self.ll = ll/self.N
+            lls.append(np.log(tmp))
+        self.ll = np.mean(lls)
 
-    def sample(self, n):
+    def sample(self, num_samples):
         pass
