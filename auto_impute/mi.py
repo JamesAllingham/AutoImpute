@@ -22,7 +22,6 @@ class MeanImpute(Model):
 
         lls = []
         for n in range(self.N):
-            x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
 
             if np.all(~mask_row): continue
