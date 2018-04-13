@@ -59,7 +59,7 @@ class BGMM(Model):
         self.βs = [self.β0]*self.num_gaussians
         self.νs = [self.ν0]*self.num_gaussians
 
-        self._calc_updated_params()
+        self._update_params()
 
         self._calc_ML_est()
         self._calc_ll()
@@ -72,7 +72,7 @@ class BGMM(Model):
 
             # do one iteration of inference
             self._calc_rs()
-            self._calc_updated_params()
+            self._update_params()
 
             # update the ML imputation and the LL
             self._calc_ML_est()
@@ -112,7 +112,7 @@ class BGMM(Model):
         self.rs = ps/np.sum(ps, axis=1, keepdims=True)        
 
     # "M-step"
-    def _calc_updated_params(self):
+    def _update_params(self):
         Ns = np.sum(self.rs, axis=0)
 
         self.αs = [Ns[k] + self.α0 for k in range(self.num_gaussians)]
