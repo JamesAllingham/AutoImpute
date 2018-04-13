@@ -15,7 +15,6 @@ class Model(object):
         self.mean = ma.mean(data, axis=0)
         self.std = ma.std(data, axis=0)
 
-        # self.X = (data - self.mean)/self.std
         self.X = data
 
         self.N = data.shape[0]
@@ -37,7 +36,6 @@ class Model(object):
     def impute(self):
         """Returns the imputed data
         """
-        # return self.expected_X*self.std + self.mean
         return self.expected_X
 
     def log_likelihood(self):
