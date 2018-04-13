@@ -50,7 +50,7 @@ class GMM(Model):
                         qs[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo)
                         
                 else: # not actually too sure how to handle this situation
-                    qs[n, :] = np.random.random(self.num_gaussians)
+                    qs[n, :] = np.mean(self.ps, axis=0)
 
             self.ps = qs/np.sum(qs, axis=1, keepdims=True)
 
