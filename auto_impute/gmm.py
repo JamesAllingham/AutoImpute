@@ -4,7 +4,6 @@
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
 from model import Model
-from utilities import regularise_Σ
 
 import numpy as np
 import numpy.ma as ma
@@ -26,12 +25,6 @@ class GMM(Model):
         self.rs[np.arange(self.N), kmeans.labels_] = 1
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_gaussians)], axis=0)
         self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_gaussians)], axis=0)
-
-        # for k in range(self.num_gaussians):
-        #     print(self.μs[k])
-        #     print(self.Σs[k])
-        # print(kmeans.labels_)
-        # print(mean_imputed_X)
 
         self.Xs = np.array([])
         self.rs = np.random.rand(self.N, self.num_gaussians)
