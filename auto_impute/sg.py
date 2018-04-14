@@ -4,7 +4,7 @@
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
 
 from model import Model
-from utilities import regularise_Σ
+from utilities import regularise_Σ, get_locs_and_coords
 
 import numpy as np
 import numpy.ma as ma
@@ -59,11 +59,7 @@ class SingleGaussian(Model):
             # if there are no missing values then go to next iter
             if np.all(~mask_row): continue
 
-            # figure out which values are missing
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+            o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
 
             # calculate the mean of m|o
             μmo = self.μ[m_locs] 
@@ -84,12 +80,7 @@ class SingleGaussian(Model):
             # if there are no missing values then go to next iter
             if np.all(~mask_row): continue
 
-            # figure out which values are missing
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             μmo = self.μ[m_locs]
 
@@ -114,12 +105,7 @@ class SingleGaussian(Model):
             # if there are no missing values then go to next iter
             if np.all(~mask_row): continue
 
-            # figure out which values are missing
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for i in range(num_samples):
                 μmo = self.μ[m_locs]

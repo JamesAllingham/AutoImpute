@@ -4,6 +4,7 @@
 # Imputation using a Gaussian Mixture Model fitted using variational Bayes
 
 from model import Model
+from utilities import get_locs_and_coords
 
 import numpy as np
 import numpy.ma as ma
@@ -89,11 +90,12 @@ class BGMM(Model):
         log_πs = special.digamma(self.αs) - special.digamma(np.sum(self.αs))
         log_ps = np.stack([log_πs]*self.N, axis=0)
         for n in range(self.N):
-            o_locs = np.where(~self.X[n, :].mask)[0]
+            mask_row = self.X[n, :].mask
+
+            o_locs, _, oo_coords, _, _, _ = get_locs_and_coords(mask_row)
             
             if not o_locs.size: continue
 
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
             x_row = self.X[n,:].data
             log_ps[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)) for k in range(self.num_gaussians)]))
 
@@ -126,7 +128,9 @@ class BGMM(Model):
             # build a repaired version of the data to use for the subsequent calculations
             x_rep = self.X.data.copy()
             for n in range(self.N):
-                m_locs = np.where(self.X[n, :].mask)
+                mask_row = self.X[n, :].mask
+
+                _, m_locs, _, _, _, _ = get_locs_and_coords(mask_row)
                 x_rep[n, m_locs] = prev_ms[k][m_locs]
 
             x_bar = 1/Ns[k]*np.sum(self.rs[:, k, np.newaxis] * x_rep, axis=0)
@@ -150,10 +154,7 @@ class BGMM(Model):
 
             if np.all(~mask_row): continue
 
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+            o_locs, m_locs, _, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for k in range(self.num_gaussians):
                 μ_k = self.ms[k]
@@ -177,10 +178,7 @@ class BGMM(Model):
 
             if np.all(~mask_row): continue
 
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+            o_locs, m_locs, _, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             tmp = 0
             for k in range(self.num_gaussians):

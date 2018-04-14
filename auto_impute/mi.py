@@ -3,12 +3,13 @@
 # mi.py
 # Imputation by replacing missing values with the mean for the collumn
 
+from model import Model
+from utilities import get_locs_and_coords
+
 import numpy as np
 import numpy.ma as ma
 from scipy import stats
 import warnings
-
-from model import Model
 
 class MeanImpute(Model):
 
@@ -26,7 +27,7 @@ class MeanImpute(Model):
 
             if np.all(~mask_row): continue
 
-            m_locs = np.where(mask_row)[0]
+            _, m_locs, _, _, _, _ = get_locs_and_coords(mask_row)
 
             lls.append(np.log(stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=means[m_locs], cov=np.ones(m_locs.size)*1e-3)))
         self.ll = np.mean(lls)

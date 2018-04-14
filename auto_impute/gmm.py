@@ -4,6 +4,7 @@
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
 
 from model import Model
+from utilities import get_locs_and_coords
 
 import numpy as np
 import numpy.ma as ma
@@ -60,8 +61,8 @@ class GMM(Model):
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
-            o_locs = np.where(~mask_row)[0]
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
+            
+            o_locs, _, oo_coords, _, _, _ = get_locs_and_coords(mask_row)
 
             x = x_row[o_locs]
             sz = len(x)
@@ -98,11 +99,7 @@ class GMM(Model):
 
                 if np.all(~mask_row): continue
 
-                o_locs = np.where(~mask_row)[0]
-                m_locs = np.where(mask_row)[0]
-                oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-                mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-                mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+                o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
                 Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
@@ -135,10 +132,7 @@ class GMM(Model):
 
             if np.all(~mask_row): continue
 
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+            o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for k in range(self.num_gaussians):
                 diff = x_row[o_locs] - self.μs[k, o_locs]
@@ -165,11 +159,7 @@ class GMM(Model):
 
             if np.all(~mask_row): continue
 
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             tmp = 0
             for k in range(self.num_gaussians):
@@ -199,11 +189,7 @@ class GMM(Model):
             if np.all(~mask_row): continue
 
             # figure out which values are missing
-            o_locs = np.where(~mask_row)[0]
-            m_locs = np.where(mask_row)[0]
-            mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
-            oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
-            mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for i in range(num_samples):
                 choice = np.random.choice(self.num_gaussians, p=self.rs[n, :])

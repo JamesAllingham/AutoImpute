@@ -11,3 +11,14 @@ def regularise_Σ(Σ):
         it += 1
 
     return Σ
+
+def get_locs_and_coords(mask_row):
+
+    o_locs = np.where(~mask_row)[0]
+    m_locs = np.where(mask_row)[0]
+    oo_coords = tuple(zip(*[(i, j) for i in o_locs for j in o_locs]))
+    mm_coords = tuple(zip(*[(i, j) for i in m_locs for j in m_locs]))
+    mo_coords = tuple(zip(*[(i, j) for i in m_locs for j in o_locs]))
+    om_coords = tuple(zip(*[(i, j) for i in o_locs for j in m_locs]))
+
+    return o_locs, m_locs, oo_coords, mm_coords, mo_coords, om_coords
