@@ -32,7 +32,7 @@ class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertEqual(ll, -np.inf)
+        self.assertTrue(np.isnan(ll))
 
 class OneValueLLTestCase(OneValueBaseTestCase):
 
@@ -41,7 +41,7 @@ class OneValueLLTestCase(OneValueBaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertEqual(ll, 0)
+        self.assertEqual(ll, 5.0698782125727915)
 
 class OneValueResultTestCase(OneValueBaseTestCase):
 
@@ -59,7 +59,7 @@ class TwoValuesLLTestCase(TwoValuesBaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertEqual(ll, -np.inf)
+        self.assertEqual(ll, 7.604817318859187)
 
 class TwoValuesResultTestCase(TwoValuesBaseTestCase):
 
