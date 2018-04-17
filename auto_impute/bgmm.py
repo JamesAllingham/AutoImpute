@@ -197,4 +197,30 @@ class BGMM(Model):
         self.ll = np.mean(lls)
 
     def sample(self, num_samples):
-        pass
+        sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
+
+        for n in range(self.N):
+            # figure out the conditional distribution for the missing data given the observed data
+            x_row = self.X[n, :].data
+            mask_row = self.X[n, :].mask
+            # if there are no missing values then go to next iter
+            if np.all(~mask_row): continue
+
+            # figure out which values are missing
+            o_locs, m_locs, _, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
+
+            for i in range(num_samples):
+                # sample from the multinomial to determine which gaussian to sample from
+                choice = np.random.choice(self.num_gaussians, p=self.rs[n, :])
+                # now sample the precision and mean from that gaussian
+                Λ = stats.wishart.rvs(df=self.νs[choice], scale=self.Ws[choice])
+                μ = stats.multivariate_normal.rvs(mean=self.ms[choice], cov=linalg.inv(self.βs[choice]*Λ))
+
+                var = np.linalg.inv(Λ[mm_coords].reshape(m_locs.size, m_locs.size))
+                mean = μ[m_locs]
+                if o_locs.size:
+                    mean -= var @ Λ[mo_coords].reshape(m_locs.size, o_locs.size) @ (x_row[o_locs] - μ[o_locs])
+
+                sampled_Xs[i, n, m_locs] = stats.multivariate_normal.rvs(mean=mean, cov=var, size=1)
+
+        return sampled_Xs
