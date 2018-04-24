@@ -2,9 +2,13 @@
 # March 2018
 # gmm.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
+# Based on Delalleau, O., Courville, A., & Bengio, Y. (n.d.). Efficient EM Training of Gaussian Mixtures with Missing Data. 
+# Retrieved from https://arxiv.org/pdf/1209.0521.pdf
+# and Ghahramani, Z., & Jordan, M. I. (n.d.). Supervised learning from incomplete data via an EM approach. 
+# Retrieved from http://papers.nips.cc/paper/767-supervised-learning-from-incomplete-data-via-an-em-approach.pdf
 
 from model import Model
-from utilities import get_locs_and_coords
+from utilities import get_locs_and_coords, regularise_Σ
 
 import numpy as np
 import numpy.ma as ma
@@ -25,7 +29,8 @@ class GMM(Model):
         kmeans = KMeans(n_clusters=self.num_gaussians, random_state=0).fit(mean_imputed_X)
         self.rs[np.arange(self.N), kmeans.labels_] = 1
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_gaussians)], axis=0)
-        self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_gaussians)], axis=0)
+        # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_gaussians)], axis=0)
+        self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_gaussians)], axis=0)
 
         self.Xs = np.array([])
         self.rs = np.random.rand(self.N, self.num_gaussians)
@@ -56,6 +61,7 @@ class GMM(Model):
             best_ll = self.ll
             if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
 
+    # E-step
     def _calc_rs(self):
         ps = np.zeros(shape=(self.N, self.num_gaussians))
         for n in range(self.N):
@@ -71,13 +77,14 @@ class GMM(Model):
                     Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
                     μo = self.μs[k, o_locs]
 
-                    ps[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo)
+                    ps[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
                     
             else: # not actually too sure how to handle this situation
                 ps[n, :] = np.mean(self.rs, axis=0)
 
         self.rs = ps/np.sum(ps, axis=1, keepdims=True)
 
+    # M-step
     def _update_params(self):
         # first fill in the missing values with each gaussian
         self._calc_ML_est()  
@@ -116,12 +123,13 @@ class GMM(Model):
             self.Σs[k] = np.zeros_like(C)
             for n in range(self.N):
                 diff = self.Xs[k, n, :] - self.μs[k]
-                self.Σs[k] += np.outer(diff, diff.T)*p[n]
+                # self.Σs[k] += np.outer(diff, diff.T)*p[n]
+                self.Σs[k] += np.diag(diff * diff)*p[n]
 
             self.Σs[k] /= np.sum(p)
             self.Σs[k] += C
             # regularisation term ensuring that the cov matrix is always pos def
-            self.Σs[k] += np.eye(self.num_features)*1e-3
+            self.Σs[k] = regularise_Σ(self.Σs[k])
 
     def _calc_ML_est(self): # should probably split this into two functions one for expected_X and one for Xs
         Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
@@ -141,6 +149,7 @@ class GMM(Model):
                 if o_locs.size:
                     Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                     Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
+                    
                     Xs[k, n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
 
                 
@@ -174,7 +183,8 @@ class GMM(Model):
 
                 Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
-                tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm)
+                tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm, allow_singular=True)
+
             lls.append(np.log(tmp))
         self.ll = np.mean(lls)
 
