@@ -87,8 +87,11 @@ class BGMM(Model):
 
     # "E-step"
     def _calc_rs(self):
+        # E[log(π)]
         log_πs = special.digamma(self.αs) - special.digamma(np.sum(self.αs))
         log_ps = np.stack([log_πs]*self.N, axis=0)
+
+        # E[log(N_nk)]
         for n in range(self.N):
             mask_row = self.X[n, :].mask
 
