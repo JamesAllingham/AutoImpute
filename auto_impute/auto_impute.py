@@ -7,10 +7,11 @@ import argparse
 import numpy as np
 
 import csv_reader
+import mi
 import sg
 import gmm
 import bgmm
-import mi
+import vigmm
 
 def main(args):
     # set random seed
@@ -28,11 +29,14 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(data.mask),))
 
-    if args.bayesian_gmm:
-        model = bgmm.BGMM(data, 6, verbose=args.verbose)
+    if args.infinite_gmm:
+        model = vigmm.VIGMM(data, 10, verbose=args.verbose)
+        model.fit()
+    elif args.bayesian_gmm:
+        model = bgmm.BGMM(data, 10, verbose=args.verbose)
         model.fit()
     elif args.gaussian_mixture:
-        model = gmm.GMM(data, 3, verbose=args.verbose)
+        model = gmm.GMM(data, 10, verbose=args.verbose)
         model.fit()
     elif args.single_gaussian:
         model = sg.SingleGaussian(data, verbose=args.verbose)
@@ -80,6 +84,8 @@ if __name__ == "__main__":
     model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
                              action="store_true")
     model_group.add_argument("-bgmm", "--bayesian_gmm", help="impute using a Gaussian mixture model fitted with Variational Bayes",
+                             action="store_true")
+    model_group.add_argument("-vigmm", "--infinite_gmm", help="impute using a infinite Gaussian mixture model fitted with Variational Bayes",
                              action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
