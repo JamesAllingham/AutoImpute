@@ -3,10 +3,11 @@
 # utilities.py
 # Common code shared between the various models.
 import numpy as np
+from scipy import linalg
 
 def regularise_Σ(Σ):
     it = 0
-    while not np.all(np.linalg.eigvals(Σ) >= 0):
+    while not np.all(np.linalg.eigvals(Σ) >= 0) or linalg.det(Σ) == 0:
         Σ += np.eye(Σ.shape[0])*10**(-3 + it)
         it += 1
 
@@ -22,3 +23,8 @@ def get_locs_and_coords(mask_row):
     om_coords = tuple(zip(*[(i, j) for i in o_locs for j in m_locs]))
 
     return o_locs, m_locs, oo_coords, mm_coords, mo_coords, om_coords
+
+def encode_1_hot(i, n):
+    tmp = np.zeros((n,))
+    tmp[i] = 1
+    return tmp
