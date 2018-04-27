@@ -66,7 +66,7 @@ class GMM(Model):
 
     # E-step
     def _calc_rs(self):
-        ps = np.zeros(shape=(self.N, self.num_gaussians))
+        rs = np.zeros(shape=(self.N, self.num_gaussians))
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
@@ -80,12 +80,12 @@ class GMM(Model):
                     Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
                     μo = self.μs[k, o_locs]
 
-                    ps[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
+                    rs[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
                     
             else: # not actually too sure how to handle this situation
-                ps[n, :] = np.mean(self.rs, axis=0)
+                rs[n, :] = np.mean(self.rs, axis=0)
 
-        self.rs = ps/np.sum(ps, axis=1, keepdims=True)
+        self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step
     def _update_params(self):
