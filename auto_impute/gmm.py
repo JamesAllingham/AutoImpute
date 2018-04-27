@@ -34,6 +34,9 @@ class GMM(Model):
 
         self.Xs = np.array([])
         self.rs = np.random.rand(self.N, self.num_gaussians)
+        self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
+        # self.rs = self.rs + np.random.rand(*self.rs.shape)*1e-1
+        # print(self.rs)
 
         self._calc_ML_est()
         self._calc_ll()
@@ -42,7 +45,7 @@ class GMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_expected_X, old_Xs, old_ps = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.rs.copy()
+            old_μs, old_Σs, old_expected_X, old_Xs, old_rs = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.rs.copy()
 
             # E-step
             self._calc_rs()
@@ -54,7 +57,7 @@ class GMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.expected_X, self.Xs, self.rs = old_μs, old_Σs, old_expected_X, old_Xs, old_ps
+                self.μs, self.Σs, self.expected_X, self.Xs, self.rs = old_μs, old_Σs, old_expected_X, old_Xs, old_rs
                 self.ll = best_ll
                 break
             
@@ -170,7 +173,7 @@ class GMM(Model):
 
             o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
-            tmp = 0
+            prob = 0
             for k in range(self.num_gaussians):
                 # now the mean and var for the missing data given the seen data
                 μmo = self.μs[k, m_locs]
@@ -183,9 +186,9 @@ class GMM(Model):
 
                 Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
-                tmp += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm, allow_singular=True)
+                prob += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm, allow_singular=True)
 
-            lls.append(np.log(tmp))
+            lls.append(np.log(prob))
         self.ll = np.mean(lls)
 
     def sample(self, num_samples):
