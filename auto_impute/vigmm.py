@@ -3,6 +3,8 @@
 # bgmm.py
 # Imputation using a Gaussian Mixture Model fitted using variational Bayes
 
+# Based on Alonso, A. G. (2017). Probability density imputation of missing data with Gaussian Mixture Models.
+
 from model import Model
 from utilities import get_locs_and_coords
 
@@ -89,13 +91,13 @@ class VIGMM(Model):
     # "E-step" - optimising cluster assignment (responsibilities r)
     def _calc_rs(self):
         # E[log(v_k)]
-        log_ps = np.stack([special.digamma(self.γs[k][0]) - special.digamma(np.sum(self.γs[k])) for k in range(self.num_gaussians)], axis=0)
+        log_rs = np.stack([special.digamma(self.γs[k][0]) - special.digamma(np.sum(self.γs[k])) for k in range(self.num_gaussians)], axis=0)
 
         # sum_{j=1}^{k-1}E[log(1 - v_j)]
         tmp = np.stack([special.digamma(self.γs[k][1]) - special.digamma(np.sum(self.γs[k])) for k in range(self.num_gaussians)], axis=0)
-        log_ps += np.cumsum(tmp, axis=0) - tmp
+        log_rs += np.cumsum(tmp, axis=0) - tmp
 
-        log_ps = np.stack([log_ps]*self.N, axis=0)
+        log_rs = np.stack([log_rs]*self.N, axis=0)
 
         # E[log(N_nk)]
         for n in range(self.N):
@@ -106,10 +108,10 @@ class VIGMM(Model):
             if not o_locs.size: continue
 
             x_row = self.X[n,:].data
-            log_ps[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)) for k in range(self.num_gaussians)]))
+            log_rs[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)) for k in range(self.num_gaussians)]))
 
             for k in range(self.num_gaussians):
-                log_ps[n, k] += 0.5*np.sum([special.digamma(0.5*(self.νs[k] - self.num_features + o_locs.size + 1 - i)) for i in range(o_locs.size)]) 
+                log_rs[n, k] += 0.5*np.sum([special.digamma(0.5*(self.νs[k] - self.num_features + o_locs.size + 1 - i)) for i in range(o_locs.size)]) 
 
             for k in range(self.num_gaussians):
                 tmp = 0.5*self.βs[k]
@@ -117,10 +119,10 @@ class VIGMM(Model):
                 tmp *= (x_row[o_locs] - self.ms[k][o_locs]).T
                 tmp = tmp @ self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)
                 tmp = tmp @ (x_row[o_locs] - self.ms[k][o_locs])
-                log_ps[n, k] -= tmp
+                log_rs[n, k] -= tmp
 
-        ps = np.exp(log_ps) + 1e-9 # incase none of the components want to take charge of an example
-        self.rs = ps/np.sum(ps, axis=1, keepdims=True)        
+        rs = np.exp(log_rs) + 1e-9 # incase none of the components want to take charge of an example
+        self.rs = rs/np.sum(rs, axis=1, keepdims=True)        
 
     # "M-step"
     def _update_params(self):

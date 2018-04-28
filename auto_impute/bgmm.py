@@ -56,12 +56,15 @@ class BGMM(Model):
         kmeans = KMeans(n_clusters=self.num_gaussians, random_state=0).fit(mean_imputed_X)
         self.rs[np.arange(self.N), kmeans.labels_] = 1
 
+        # for the rest of the params just use the priors
         self.αs = [self.α0]*self.num_gaussians
         self.βs = [self.β0]*self.num_gaussians
         self.νs = [self.ν0]*self.num_gaussians
 
+        # to speed up convergence we can actually use the initial cluster assignemnts to determine what that params should be
         self._update_params()
 
+        # get the initial ML estimate of the missing values and the corresponding LL
         self._calc_ML_est()
         self._calc_ll()
 
@@ -89,7 +92,7 @@ class BGMM(Model):
     def _calc_rs(self):
         # E[log(π)]
         log_πs = special.digamma(self.αs) - special.digamma(np.sum(self.αs))
-        log_ps = np.stack([log_πs]*self.N, axis=0)
+        log_rs = np.stack([log_πs]*self.N, axis=0)
 
         # E[log(N_nk)]
         for n in range(self.N):
@@ -100,10 +103,10 @@ class BGMM(Model):
             if not o_locs.size: continue
 
             x_row = self.X[n,:].data
-            log_ps[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)) for k in range(self.num_gaussians)]))
+            log_rs[n, :] += 0.5*np.log(np.array([linalg.det(self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)) for k in range(self.num_gaussians)]))
 
             for k in range(self.num_gaussians):
-                log_ps[n, k] += 0.5*np.sum([special.digamma(0.5*(self.νs[k] - self.num_features + o_locs.size + 1 - i)) for i in range(o_locs.size)]) 
+                log_rs[n, k] += 0.5*np.sum([special.digamma(0.5*(self.νs[k] - self.num_features + o_locs.size + 1 - i)) for i in range(o_locs.size)]) 
 
             for k in range(self.num_gaussians):
                 tmp = 0.5*self.βs[k]
@@ -111,10 +114,10 @@ class BGMM(Model):
                 tmp *= (x_row[o_locs] - self.ms[k][o_locs]).T
                 tmp = tmp @ self.Ws[k][oo_coords].reshape(o_locs.size, o_locs.size)
                 tmp = tmp @ (x_row[o_locs] - self.ms[k][o_locs])
-                log_ps[n, k] -= tmp
+                log_rs[n, k] -= tmp
 
-        ps = np.exp(log_ps) + 1e-9 # incase none of the components want to take charge of an example
-        self.rs = ps/np.sum(ps, axis=1, keepdims=True)        
+        rs = np.exp(log_rs) + 1e-9 # incase none of the components want to take charge of an example
+        self.rs = rs/np.sum(rs, axis=1, keepdims=True)        
 
     # "M-step"
     def _update_params(self):
@@ -164,6 +167,7 @@ class BGMM(Model):
                 Λ_k = self.νs[k]*self.Ws[k]
                 Xs[k, n, m_locs] = μ_k[m_locs]
 
+                # if there were any observations we can use that infomation to further update our estimate
                 if o_locs.size:
                     Σ = np.linalg.inv(Λ_k[mm_coords].reshape(m_locs.size, m_locs.size))
                     Xs[k, n, m_locs] -= Σ @ Λ_k[mo_coords].reshape(m_locs.size, o_locs.size) @ (x_row[o_locs] - μ_k[o_locs])
