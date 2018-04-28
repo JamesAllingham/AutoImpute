@@ -18,22 +18,22 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_gaussians, verbose=None):
+    def __init__(self, data, num_components, verbose=None):
         Model.__init__(self, data, verbose=verbose)
-        self.num_gaussians = num_gaussians
+        self.num_components = num_components
 
         # use k-means to initialise params
-        self.rs = np.zeros(shape=(self.N, self.num_gaussians))
+        self.rs = np.zeros(shape=(self.N, self.num_components))
         mean_imputed_X = self.X.data.copy()
         mean_imputed_X[self.X.mask] = ma.mean(self.X, axis=0)[np.where(self.X.mask)[1]]
-        kmeans = KMeans(n_clusters=self.num_gaussians, random_state=0).fit(mean_imputed_X)
+        kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
         self.rs[np.arange(self.N), kmeans.labels_] = 1
-        self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_gaussians)], axis=0)
-        # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_gaussians)], axis=0)
-        self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_gaussians)], axis=0)
+        self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
+        # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_components)], axis=0)
+        self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
 
         self.Xs = np.array([])
-        self.rs = np.random.rand(self.N, self.num_gaussians)
+        self.rs = np.random.rand(self.N, self.num_components)
         self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
         # self.rs = self.rs + np.random.rand(*self.rs.shape)*1e-1
         # print(self.rs)
@@ -66,7 +66,7 @@ class GMM(Model):
 
     # E-step
     def _calc_rs(self):
-        rs = np.zeros(shape=(self.N, self.num_gaussians))
+        rs = np.zeros(shape=(self.N, self.num_components))
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
@@ -76,7 +76,7 @@ class GMM(Model):
             x = x_row[o_locs]
             sz = len(x)
             if sz:
-                for k in range(self.num_gaussians):
+                for k in range(self.num_components):
                     Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
                     μo = self.μs[k, o_locs]
 
@@ -93,12 +93,12 @@ class GMM(Model):
         self._calc_ML_est()  
         
         # now recompute μs
-        for k in range(self.num_gaussians):
+        for k in range(self.num_components):
             p = self.rs[:, k]
             self.μs[k] = (p @ self.Xs[k])/np.sum(p)
 
         # and now Σs
-        for k in range(self.num_gaussians):
+        for k in range(self.num_components):
 
             p = self.rs[:, k]
 
@@ -135,7 +135,7 @@ class GMM(Model):
             self.Σs[k] = regularise_Σ(self.Σs[k])
 
     def _calc_ML_est(self): # should probably split this into two functions one for expected_X and one for Xs
-        Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
+        Xs = np.stack([self.X.data]*self.num_components, axis=0)
 
         for n in range(self.N):
             x_row = self.X[n, :].data
@@ -145,7 +145,7 @@ class GMM(Model):
 
             o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
 
-            for k in range(self.num_gaussians):
+            for k in range(self.num_components):
                 diff = x_row[o_locs] - self.μs[k, o_locs]
 
                 Xs[k, n, m_locs] = self.μs[k, m_locs]
@@ -157,7 +157,7 @@ class GMM(Model):
 
                 
         self.expected_X = np.zeros_like(self.X.data)
-        for k in range(self.num_gaussians):
+        for k in range(self.num_components):
             for n in range(self.N):
                 self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
             
@@ -174,7 +174,7 @@ class GMM(Model):
             o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             prob = 0
-            for k in range(self.num_gaussians):
+            for k in range(self.num_components):
                 # now the mean and var for the missing data given the seen data
                 μmo = self.μs[k, m_locs]
                 
@@ -205,7 +205,7 @@ class GMM(Model):
             o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for i in range(num_samples):
-                choice = np.random.choice(self.num_gaussians, p=self.rs[n, :])
+                choice = np.random.choice(self.num_components, p=self.rs[n, :])
                 μmo = self.μs[choice, m_locs]
 
                 if o_locs.size:

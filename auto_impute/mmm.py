@@ -16,9 +16,9 @@ from scipy import stats
 from scipy import linalg
 from sklearn.cluster import KMeans
 
-class GMM(Model):
+class MMM(Model):
 
-    def __init__(self, data, num_gaussians, verbose=None):
+    def __init__(self, data, num_components, verbose=None):
         Model.__init__(self, data, verbose=verbose)
         
         self._calc_ML_est()

@@ -15,9 +15,9 @@ from scipy import stats
 
 class CMM(Model):
 
-    def __init__(self, data, num_gaussians, verbose=None):
+    def __init__(self, data, num_components, verbose=None):
         Model.__init__(self, data, verbose=verbose)
-        self.num_gaussians = num_gaussians
+        self.num_components = num_components
 
         # get list of unique values in each column
         self.unique_vals = [np.unique(data[:, d].compressed()) for d in range(self.num_features)]
@@ -28,11 +28,11 @@ class CMM(Model):
                 for d in range(self.num_features)]
 
         # randomise the initial parameter values for the categorical distributions
-        # self.rs = np.random.rand(self.N, self.num_gaussians)
+        # self.rs = np.random.rand(self.N, self.num_components)
         # self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
-        self.rs = np.random.dirichlet(np.ones((self.N,)), self.num_gaussians).T
+        self.rs = np.random.dirichlet(np.ones((self.N,)), self.num_components).T
 
-        self.ps = [np.random.dirichlet(np.ones(len(self.unique_vals[d])), self.num_gaussians).T for d in range(self.num_features)]
+        self.ps = [np.random.dirichlet(np.ones(len(self.unique_vals[d])), self.num_components).T for d in range(self.num_features)]
 
         self._calc_ML_est()
         self._calc_ll()
@@ -62,7 +62,7 @@ class CMM(Model):
 
     # E-step
     def _calc_rs(self):
-        rs = np.zeros(shape=(self.N, self.num_gaussians))
+        rs = np.zeros(shape=(self.N, self.num_components))
 
         for n in range(self.N):
 
@@ -72,7 +72,7 @@ class CMM(Model):
             o_locs, _, _, _, _, _ = get_locs_and_coords(mask_row)
 
             if (o_locs.size):
-                for k in range(self.num_gaussians):
+                for k in range(self.num_components):
                     tmp = 1
                     for d in o_locs:
                         tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[d][:, k])
@@ -85,9 +85,9 @@ class CMM(Model):
     # M-step
     def _update_params(self):
         # ps = np.zeros_like(self.ps)
-        ps = [np.zeros(shape=(self.unique_vals[d].size, self.num_gaussians)) for d in range(self.num_features)]
+        ps = [np.zeros(shape=(self.unique_vals[d].size, self.num_components)) for d in range(self.num_features)]
 
-        for k in range(self.num_gaussians):
+        for k in range(self.num_components):
             for d in range(self.num_features):
                 tmp = 0
                 for n in range(self.N):
@@ -121,7 +121,7 @@ class CMM(Model):
             if np.all(~mask_row): continue
 
             prob = 0
-            for k in range(self.num_gaussians):
+            for k in range(self.num_components):
                 tmp = 1
                 for d in range(self.num_features):
                     if self.X.mask[n, d]:
