@@ -9,4 +9,4 @@ Developed for Python 3 (tested with 3.5.2 on Ubuntu 16.04).
 
 * Pandas (0.22.0)
 
-* Scipy (1.0.0)
+* Scipy (1.10.0)
