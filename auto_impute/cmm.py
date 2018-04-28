@@ -2,6 +2,10 @@
 # April 2018
 # gmm.py
 # Imputation using a Categorical Mixture Model fitted using the EM algorithm
+# Based on Ghahramani, Z., & Jordan, M. I. (n.d.). Supervised learning from incomplete data via an EM approach. 
+# Retrieved from http://papers.nips.cc/paper/767-supervised-learning-from-incomplete-data-via-an-em-approach.pdf
+
+# NOTE: scipy.stats.multinomial sometimes eroneously gives nan for Scipy versions lower than 1.10.0
 
 from model import Model
 from utilities import get_locs_and_coords, encode_1_hot
