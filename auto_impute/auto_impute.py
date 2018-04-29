@@ -13,6 +13,7 @@ import gmm
 import bgmm
 import vigmm
 import cmm
+import mmm
 
 def main(args):
     # set random seed
@@ -44,6 +45,9 @@ def main(args):
         model.fit()
     elif args.categorical_mixture:
         model = cmm.CMM(data, 10, verbose=args.verbose)
+        model.fit()
+    elif args.mixed_mixture:
+        model = mmm.MMM(data, 10, verbose=args.verbose)
         model.fit()
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
@@ -92,6 +96,8 @@ if __name__ == "__main__":
     model_group.add_argument("-vigmm", "--infinite_gmm", help="impute using a infinite Gaussian mixture model fitted with Variational Bayes",
                              action="store_true")
     model_group.add_argument("-cmm", "--categorical_mixture", help="impute using a Categorical mixture model fitted with EM",
+                             action="store_true")
+    model_group.add_argument("-mmm", "--mixed_mixture", help="impute using a mixed (consisiting of categorical and gaussian components) mixture model fitted with EM",
                              action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
