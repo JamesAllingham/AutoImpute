@@ -41,7 +41,7 @@ class CMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_ps, old_rs = self.ps.copy(), self.rs.copy()
+            old_ps, old_rs, old_expected_X = self.ps.copy(), self.rs.copy(), self.expected_X.copy()
 
             # E-step
             self._calc_rs()
@@ -53,7 +53,7 @@ class CMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.ps, self.rs = old_ps, old_rs
+                self.ps, self.rs, self.expected_X = old_ps, old_rs, old_expected_X
                 self.ll = best_ll
                 break
             
