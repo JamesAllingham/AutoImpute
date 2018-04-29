@@ -91,7 +91,7 @@ class CMM(Model):
             for d in range(self.num_features):
                 tmp = 0
                 for n in range(self.N):
-                        tmp += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[d][:, k])
+                    tmp += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[d][:, k])
 
                 tmp /= np.sum(self.rs[:, k])
                 ps[d][:, k] = tmp
@@ -146,7 +146,7 @@ class CMM(Model):
 
                     if self.X.mask[n, d]:
                         # figure out the probabilities for each class based on the mixture responsibilites
-                        p = np.sum(self.rs[n, :]*self.ps[:, d], axis=0)
+                        p = np.sum(self.rs[n, :]*self.ps[:, d], axis=0) # TODO: maybe sample a choice rather than doing a weighted average
                         # sample from a categorical distro using these probs
                         class_idx = np.argmax(stats.multinomial.rvs(1, p))
 
