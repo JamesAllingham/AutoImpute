@@ -28,11 +28,11 @@ class CMM(Model):
                 for d in range(self.num_features)]
 
         # randomise the initial parameter values for the categorical distributions
-        # self.rs = np.random.rand(self.N, self.num_components)
-        # self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
-        self.rs = np.random.dirichlet(np.ones((self.N,)), self.num_components).T
+        self.ps = np.array([[np.random.dirichlet(np.ones(len(self.unique_vals[d]))) 
+            for d in range(self.num_features)] for k in range(self.num_components)])
 
-        self.ps = [np.random.dirichlet(np.ones(len(self.unique_vals[d])), self.num_components).T for d in range(self.num_features)]
+        # randomise initial responsibilities
+        self.rs = np.random.dirichlet(np.ones((self.N,))*10, self.num_components).T
 
         self._calc_ML_est()
         self._calc_ll()
@@ -75,7 +75,7 @@ class CMM(Model):
                 for k in range(self.num_components):
                     tmp = 1
                     for d in o_locs:
-                        tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[d][:, k])
+                        tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
                     rs[n, k] = tmp
             else:
                 rs[n, :] = np.mean(self.rs, axis=0)
@@ -85,16 +85,16 @@ class CMM(Model):
     # M-step
     def _update_params(self):
         # ps = np.zeros_like(self.ps)
-        ps = [np.zeros(shape=(self.unique_vals[d].size, self.num_components)) for d in range(self.num_features)]
+        ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
 
         for k in range(self.num_components):
             for d in range(self.num_features):
                 tmp = 0
                 for n in range(self.N):
-                    tmp += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[d][:, k])
+                    tmp += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d])
 
                 tmp /= np.sum(self.rs[:, k])
-                ps[d][:, k] = tmp
+                ps[k, d] = tmp
 
         self.ps = ps
         
@@ -106,7 +106,7 @@ class CMM(Model):
 
                 if self.X.mask[n, d]:
                     # figure out the probabilities for each class based on the mixture responsibilites
-                    p = np.sum(self.rs[n, :]*self.ps[d][:, :], axis=1)
+                    p = np.sum(self.rs[n, :]*self.ps[:, d], axis=0)
 
                     # now the max probability gives us the class
                     class_idx = np.argmax(p)
@@ -125,7 +125,7 @@ class CMM(Model):
                 tmp = 1
                 for d in range(self.num_features):
                     if self.X.mask[n, d]:
-                        tmp *= self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]] ,1, self.ps[d][:, k])
+                        tmp *= self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]] ,1, self.ps[k, d])
 
                 prob += tmp
             lls.append(np.log(prob)) 
