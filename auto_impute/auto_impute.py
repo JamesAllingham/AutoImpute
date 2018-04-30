@@ -32,22 +32,22 @@ def main(args):
         print("Percentage missing elements: %s\n" % (np.mean(data.mask),))
 
     if args.infinite_gmm:
-        model = vigmm.VIGMM(data, 10, verbose=args.verbose)
+        model = vigmm.VIGMM(data, args.num_components, verbose=args.verbose)
         model.fit()
     elif args.bayesian_gmm:
-        model = bgmm.BGMM(data, 10, verbose=args.verbose)
+        model = bgmm.BGMM(data, args.num_components, verbose=args.verbose)
         model.fit()
     elif args.gaussian_mixture:
-        model = gmm.GMM(data, 10, verbose=args.verbose)
+        model = gmm.GMM(data, args.num_components, verbose=args.verbose)
         model.fit()
     elif args.single_gaussian:
         model = sg.SingleGaussian(data, verbose=args.verbose)
         model.fit()
     elif args.categorical_mixture:
-        model = cmm.CMM(data, 10, verbose=args.verbose)
+        model = cmm.CMM(data, args.num_components, verbose=args.verbose)
         model.fit()
     elif args.mixed_mixture:
-        model = mmm.MMM(data, 10, verbose=args.verbose)
+        model = mmm.MMM(data, args.num_components, verbose=args.verbose, assignments=args.column_assignments)
         model.fit()
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
@@ -66,6 +66,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Automatically repairs CSV files with missing entries")
+
     parser.add_argument("file", help="name of the file to repair")
     parser.add_argument("-v", "--verbose", help="increase the output verbosity",
                         action="store_true")
@@ -76,9 +77,13 @@ if __name__ == "__main__":
     parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: None)",
                         type=int)
     parser.add_argument("-t", "--test", help="file to use for calculating RMSE",
-                        type=str,default=None)
+                        type=str, default=None)
     parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '')",
-                        type=str,default='')
+                        type=str, default='')
+    parser.add_argument("-n", "--num_components", help="number of components for mixture models (default: 10)",
+                        type=int, default=10)
+    parser.add_argument("-a", "--column_assignments", help="data type assignments for each column either 'r' for real or 'd' for discrete e.g. 'dddrrr' for 3 discrete followed by 3 real (default: all real)",
+                        type=str, default='')
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
