@@ -31,9 +31,9 @@ class MMM(Model):
                 for d in range(self.num_features)]
 
         # check if assignments were made and if so whether or not they were valid
-        if assignments is None:
+        if assignments == "":
             assignments = ['r']*self.num_features
-        elif len(assignments) == self.num_features:
+        elif len(assignments) != self.num_features:
             raise RuntimeError("Only %s assignemnt(s) were given. Please give one assignemnt per column (%s assignment(s))" % (len(assignments), self.num_features))
         
         for d, assignment in enumerate(assignments):
