@@ -14,8 +14,10 @@ class Model(object):
         # normalise the data for numerical stability
         self.mean = ma.mean(data, axis=0)
         self.std = ma.std(data, axis=0)
+        # self.mean = 0
+        # self.std = 1
 
-        self.X = data
+        self.X = (data - self.mean)/self.std
 
         self.N = data.shape[0]
         self.num_features = data.shape[1]
@@ -36,7 +38,7 @@ class Model(object):
     def impute(self):
         """Returns the imputed data
         """
-        return self.expected_X
+        return self.expected_X*self.std + self.mean
 
     def log_likelihood(self):
         """Calculates the log likelihood of the repaired data given the model paramers.
