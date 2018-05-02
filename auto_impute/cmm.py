@@ -20,7 +20,7 @@ class CMM(Model):
         self.num_components = num_components
 
         # get list of unique values in each column
-        self.unique_vals = [np.unique(data[:, d].compressed()) for d in range(self.num_features)]
+        self.unique_vals = [np.unique(self.X[:, d].compressed()) for d in range(self.num_features)]
 
         # create a dictionary from value to one-hot encoding of which unique value it is
         self.one_hot_lookups = [{val: encode_1_hot(i, len(self.unique_vals[d])) 
