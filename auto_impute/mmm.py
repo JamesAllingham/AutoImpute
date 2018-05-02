@@ -23,7 +23,7 @@ class MMM(Model):
         self.num_components = num_components
 
         # get list of unique values in each column
-        self.unique_vals = [np.unique(data[:, d].compressed()) for d in range(self.num_features)]
+        self.unique_vals = [np.unique(self.X[:, d].compressed()) for d in range(self.num_features)]
 
         # create a dictionary from value to corresponding one-hot encoding
         self.one_hot_lookups = [{val: encode_1_hot(i, len(self.unique_vals[d])) 
@@ -31,16 +31,17 @@ class MMM(Model):
                 for d in range(self.num_features)]
 
         # check if assignments were made and if so whether or not they were valid
-        if assignments == "":
-            assignments = ['r']*self.num_features
-        elif len(assignments) != self.num_features:
-            raise RuntimeError("Only %s assignemnt(s) were given. Please give one assignemnt per column (%s assignment(s))" % (len(assignments), self.num_features))
-        
-        for d, assignment in enumerate(assignments):
-            if assignment != 'r' and assignment != 'd':
-                raise RuntimeError("Invalid assignment ('%s') given for column %s. Use 'r' and 'd' for real and discrete valued columns respectively." % (assignment, d))
-        
-        self.real_columns = np.array([assignment == 'r' for assignment in assignments])
+        self.assignments_given = False 
+        if assignments != "":
+            if len(assignments) != self.num_features:
+                raise RuntimeError("%s assignemnt(s) were given. Please give one assignemnt per column (%s assignment(s))" % (len(assignments), self.num_features))
+
+            for d, assignment in enumerate(assignments):
+                if assignment != 'r' and assignment != 'd':
+                    raise RuntimeError("Invalid assignment ('%s') given for column %s. Use 'r' and 'd' for real and discrete valued columns respectively." % (assignment, d))
+
+            self.assignments_given = True    
+               
 
         # use k-means to initialise gaussian params
         mean_imputed_X = self.X.data.copy()
@@ -58,6 +59,12 @@ class MMM(Model):
 
         # randomise initial responsibilities
         self.rs = np.random.dirichlet(np.ones((self.N,))*10, self.num_components).T
+
+        # for the column types, if they havent been given then randomly choose them
+        if self.assignments_given:
+            self.real_columns = np.array([1 if assignment == 'r' else 0 for assignment in assignments])
+        else:
+            self.real_columns = np.random.rand(self.num_features)
 
         self._calc_ML_est()
         self._calc_ll()
@@ -79,6 +86,10 @@ class MMM(Model):
             if self.ll < best_ll or self.ll - best_ll < ϵ:
                 self.μs, self.Σs, self.ps, self.rs, self.expected_X = old_μs, old_Σs, old_ps, old_rs, old_expected_X
                 self.ll = best_ll
+
+                if self.verbose and not self.assignments_given:
+                    print("\nFinal assignments (probability for real): " + " ".join(["%f" % x for x in self.real_columns]))
+
                 break
             
             best_ll = self.ll
@@ -88,26 +99,23 @@ class MMM(Model):
     # E-step
     def _calc_rs(self):
         rs = np.zeros(shape=(self.N, self.num_components))
+        
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
+            o_locs = np.where(~mask_row)[0]
             
-            if not np.all(mask_row):
-                o_r_locs = np.where(np.logical_and(~mask_row, self.real_columns))[0] 
-                o_d_locs = np.where(np.logical_and(~mask_row, np.logical_not(self.real_columns)))[0] 
-             
-                rs[n, :] = np.ones((self.num_components,))
-
-                # if there are any observed real vars in this row then include them in the responsibility
-                if o_r_locs.size:
-                    o_r_mask = np.logical_and(~mask_row, self.real_columns)
-                    rs[n, :] *= np.array([stats.multivariate_normal.pdf(x_row[o_r_locs], mean=self.μs[k, o_r_locs], cov=self.Σs[k][np.ix_(o_r_mask, o_r_mask)], allow_singular=True)
-                        for k in range(self.num_components)])
-
-                # if there are any observed discrete vars then include them
-                if o_d_locs.size:
-                    rs[n, :] *= np.array([np.prod([stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d]) for d in o_d_locs])
-                        for k in range(self.num_components)])
+            if not np.all(mask_row):  
+                rs[n, :] += np.array([
+                    np.prod([
+                        self.real_columns[d]*stats.norm.pdf(x_row[d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) +
+                        (1 - self.real_columns[d])*stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
+                        for d in o_locs
+                    ])
+                    for k in range(self.num_components)
+                ])
+                if np.all(rs[n, :] == 0): # deal with the case where no components want to take charge of an example
+                    rs[n, :] = 1e-20
             else:
                 rs[n, :] = np.mean(self.rs, axis=0)
 
@@ -115,12 +123,38 @@ class MMM(Model):
 
     # M-step
     def _update_params(self):
-        # update the ps
+        # update the assignment params
+        # print(self.real_columns)
+        if not self.assignments_given:
+            for n in range(self.N):
+                for d in range(self.num_features):
+                    tmp = np.sum([stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) for k in range(self.num_components)])
+            foo = np.array([
+                np.sum([
+                    np.sum([
+                        self.rs[n, k]*stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d])
+                        for k in range(self.num_components)
+                    ])
+                    for n in range(self.N)
+                ]) 
+                for d in range(self.num_features)
+            ])
+            tmp = np.array([
+                np.sum([
+                    np.sum([
+                        self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d], 1, self.ps[k, d])
+                        for k in range(self.num_components)
+                    ])
+                    for n in range(self.N)
+                ]) 
+                for d in range(self.num_features)
+            ])
+            self.real_columns = foo/(tmp + foo)
+
+        # update the discrete params
         ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
 
-        for d, is_real in enumerate(self.real_columns):
-            if is_real: continue
-            
+        for d in range(self.num_features):            
             for k in range(self.num_components):
                 
                 tmp = 0
@@ -132,6 +166,7 @@ class MMM(Model):
 
         self.ps = ps
 
+        # update the real params
         for k in range(self.num_components):
             # update the μs
             # first fill in the missing elements of X
