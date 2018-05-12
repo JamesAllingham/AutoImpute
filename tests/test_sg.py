@@ -42,7 +42,7 @@ class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -4.153074650106323)
+        self.assertAlmostEqual(ll, -1.3819994419383168)
 
 class BostonMCAR20LLTestCase(testing_utils.BostonMCAR20BaseTestCase):
 
@@ -52,7 +52,7 @@ class BostonMCAR20LLTestCase(testing_utils.BostonMCAR20BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -6.585943797329661)
+        self.assertAlmostEqual(ll, -1.916096390907473)
 
 class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
@@ -62,7 +62,7 @@ class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -8.730701203328083)
+        self.assertAlmostEqual(ll, -2.3689620433382492)
 
 class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
@@ -72,7 +72,7 @@ class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -0.6722662455291954)
+        self.assertAlmostEqual(ll, -0.9648759753923146)
 
 class IrisMCAR20LLTestCase(testing_utils.IrisMCAR20BaseTestCase):
 
@@ -82,7 +82,7 @@ class IrisMCAR20LLTestCase(testing_utils.IrisMCAR20BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -0.6831221650724867)
+        self.assertAlmostEqual(ll, -0.9668574559009642)
 
 class IrisMCAR40LLTestCase(testing_utils.IrisMCAR40BaseTestCase):
 
@@ -92,7 +92,7 @@ class IrisMCAR40LLTestCase(testing_utils.IrisMCAR40BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -0.6206492288167005)
+        self.assertAlmostEqual(ll, -0.9725021074844706)
 
 class IrisMCAR50LLTestCase(testing_utils.IrisMCAR50BaseTestCase):
 
@@ -102,4 +102,4 @@ class IrisMCAR50LLTestCase(testing_utils.IrisMCAR50BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -0.1454619352139332)
+        self.assertAlmostEqual(ll, -0.6286605534111728\)

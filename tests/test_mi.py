@@ -41,7 +41,7 @@ class OneValueLLTestCase(OneValueBaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertEqual(ll, 5.0698782125727915)
+        self.assertEqual(ll, 7.604817318859187)
 
 class OneValueResultTestCase(OneValueBaseTestCase):
 
