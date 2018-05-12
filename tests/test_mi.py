@@ -1,7 +1,7 @@
 # James Allingham
 # April 2018
-# test_MeanImpute.py
-# Tests for the mean imputation module
+# test_mi.py
+# Tests for the mi module
 
 import unittest
 import sys

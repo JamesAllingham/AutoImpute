@@ -102,4 +102,4 @@ class IrisMCAR50LLTestCase(testing_utils.IrisMCAR50BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertAlmostEqual(ll, -0.6286605534111728\)
+        self.assertAlmostEqual(ll, -0.6286605534111728)
