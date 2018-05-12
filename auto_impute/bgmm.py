@@ -152,7 +152,7 @@ class BGMM(Model):
     def _calc_ML_est(self):
         # Note: the expectation for each mean is simply self.ms[k],
         # similarly, the expectation for the precision is self.νs[k]*self.Ws[k]
-        Xs = np.stack([self.X.data]*self.num_gaussians, axis=0)
+        self.expected_X = self.X.data
 
         for n in range(self.N):
             x_row = self.X[n, :].data
@@ -162,20 +162,15 @@ class BGMM(Model):
 
             o_locs, m_locs, _, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
-            for k in range(self.num_gaussians):
-                μ_k = self.ms[k]
-                Λ_k = self.νs[k]*self.Ws[k]
-                Xs[k, n, m_locs] = μ_k[m_locs]
+            k = np.argmax(self.rs[n, :])
+            μ_k = self.ms[k]
+            Λ_k = self.νs[k]*self.Ws[k]
+            self.expected_X[n, m_locs] = μ_k[m_locs]
 
-                # if there were any observations we can use that infomation to further update our estimate
-                if o_locs.size:
-                    Σ = np.linalg.inv(Λ_k[mm_coords].reshape(m_locs.size, m_locs.size))
-                    Xs[k, n, m_locs] -= Σ @ Λ_k[mo_coords].reshape(m_locs.size, o_locs.size) @ (x_row[o_locs] - μ_k[o_locs])
-                
-        self.expected_X = np.zeros_like(self.X.data)
-        for k in range(self.num_gaussians):
-            for n in range(self.N):
-                self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
+            # if there were any observations we can use that infomation to further update our estimate
+            if o_locs.size:
+                Σ = np.linalg.inv(Λ_k[mm_coords].reshape(m_locs.size, m_locs.size))
+                self.expected_X[n, m_locs] -= Σ @ Λ_k[mo_coords].reshape(m_locs.size, o_locs.size) @ (x_row[o_locs] - μ_k[o_locs])
     
     def _calc_ll(self):
         lls = []
