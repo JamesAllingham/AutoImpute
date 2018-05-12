@@ -32,7 +32,6 @@ class GMM(Model):
         # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_components)], axis=0)
         self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
 
-        self.Xs = np.array([])
         self.rs = np.random.rand(self.N, self.num_components)
         self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
         # self.rs = self.rs + np.random.rand(*self.rs.shape)*1e-1
@@ -45,7 +44,7 @@ class GMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_expected_X, old_Xs, old_rs = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.Xs.copy(), self.rs.copy()
+            old_μs, old_Σs, old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.rs.copy()
 
             # E-step
             self._calc_rs()
@@ -57,7 +56,7 @@ class GMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.expected_X, self.Xs, self.rs = old_μs, old_Σs, old_expected_X, old_Xs, old_rs
+                self.μs, self.Σs, self.expected_X, self.rs = old_μs, old_Σs, old_expected_X, old_rs
                 self.ll = best_ll
                 break
             
@@ -92,16 +91,30 @@ class GMM(Model):
         # first fill in the missing values with each gaussian
         self._calc_ML_est()  
         
-        # now recompute μs
         for k in range(self.num_components):
+            # first fill in the missing elements of X
+            X = self.X.data
+            μ = np.stack([self.μs[k]]*self.N, axis=0)
+            X[self.X.mask] = μ[self.X.mask]             
+            for n in range(self.N):
+                x_row = self.X[n, :].data
+                mask_row = self.X[n, :].mask
+
+                if np.all(~mask_row): continue
+
+                o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
+
+                if o_locs.size:
+                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
+                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
+                    diff = x_row[o_locs] - self.μs[k, o_locs]
+                    X[n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
+
+            # now recompute μs
             p = self.rs[:, k]
-            self.μs[k] = (p @ self.Xs[k])/np.sum(p)
+            self.μs[k] = (p @ X)/np.sum(p)
 
-        # and now Σs
-        for k in range(self.num_components):
-
-            p = self.rs[:, k]
-
+            # and now Σs
             # calc C
             C = np.zeros(shape=(self.num_features, self.num_features))
             for n in range(self.N):
@@ -125,17 +138,22 @@ class GMM(Model):
 
             self.Σs[k] = np.zeros_like(C)
             for n in range(self.N):
-                diff = self.Xs[k, n, :] - self.μs[k]
+                x_row = self.X[n, :].data
+                diff = x_row - self.μs[k]
                 # self.Σs[k] += np.outer(diff, diff.T)*p[n]
                 self.Σs[k] += np.diag(diff * diff)*p[n]
 
+            # print(self.Σs[k])
             self.Σs[k] /= np.sum(p)
+            # print(self.Σs[k])
             self.Σs[k] += C
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σs[k] = regularise_Σ(self.Σs[k])
+            # print(self.Σs[k])
+            # print(C)
 
-    def _calc_ML_est(self): # should probably split this into two functions one for expected_X and one for Xs
-        Xs = np.stack([self.X.data]*self.num_components, axis=0)
+    def _calc_ML_est(self):
+        self.expected_X = self.X.data.copy()
 
         for n in range(self.N):
             x_row = self.X[n, :].data
@@ -145,23 +163,15 @@ class GMM(Model):
 
             o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
 
-            for k in range(self.num_components):
-                diff = x_row[o_locs] - self.μs[k, o_locs]
+            k = np.argmax(self.rs[n, :])
+            diff = x_row[o_locs] - self.μs[k, o_locs]
 
-                Xs[k, n, m_locs] = self.μs[k, m_locs]
-                if o_locs.size:
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
-                    
-                    Xs[k, n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
-
+            self.expected_X[n, m_locs] = self.μs[k, m_locs]
+            if o_locs.size:
+                Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
+                Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
                 
-        self.expected_X = np.zeros_like(self.X.data)
-        for k in range(self.num_components):
-            for n in range(self.N):
-                self.expected_X[n, :] += self.rs[n, k]*Xs[k, n, :]
-            
-        self.Xs = Xs
+                self.expected_X[n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
 
     def _calc_ll(self):
         lls = []
