@@ -33,22 +33,22 @@ def main(args):
 
     if args.infinite_gmm:
         model = vigmm.VIGMM(data, args.num_components, verbose=args.verbose)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.bayesian_gmm:
         model = bgmm.BGMM(data, args.num_components, verbose=args.verbose)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.gaussian_mixture:
         model = gmm.GMM(data, args.num_components, verbose=args.verbose)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.single_gaussian:
         model = sg.SingleGaussian(data, verbose=args.verbose)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.categorical_mixture:
         model = cmm.CMM(data, args.num_components, verbose=args.verbose)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.mixed_mixture:
         model = mmm.MMM(data, args.num_components, verbose=args.verbose, assignments=args.column_assignments)
-        model.fit()
+        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
@@ -94,10 +94,14 @@ if __name__ == "__main__":
                         type=str, default=None)
     parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '')",
                         type=str, default='')
-    parser.add_argument("-n", "--num_components", help="number of components for mixture models (default: 10)",
+    parser.add_argument("-k", "--num_components", help="number of components for mixture models (default: 10)",
                         type=int, default=10)
     parser.add_argument("-a", "--column_assignments", help="data type assignments for each column either 'r' for real or 'd' for discrete e.g. 'dddrrr' for 3 discrete followed by 3 real (default: all real)",
                         type=str, default='')
+    parser.add_argument("-e", "--epsilon", help="ϵ (model stopping criterion): if LL_new - LL_old < ϵ then stop iterating (default: 1e-1)",
+                        type=float, default=1e-1)
+    parser.add_argument("-n", "--max_iters", help="maximum number of iterations to fit model (default: 100)",
+                        type=int, default=100)
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
