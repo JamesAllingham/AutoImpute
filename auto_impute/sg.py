@@ -42,7 +42,7 @@ class SingleGaussian(Model):
 
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
-            if self.ll < best_ll or self.ll - best_ll < ϵ:
+            if self.ll - best_ll < ϵ:
                 self.μ, self.Σ, self.expected_X = old_μ, old_Σ, old_expected_X
                 self.ll = best_ll
                 break

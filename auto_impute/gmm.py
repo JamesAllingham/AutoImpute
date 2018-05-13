@@ -53,7 +53,7 @@ class GMM(Model):
             self._calc_ML_est()
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
-            if self.ll < best_ll or self.ll - best_ll < ϵ:
+            if self.ll - best_ll < ϵ:
                 self.μs, self.Σs, self.πs, self.expected_X, self.rs = old_μs, old_Σs, old_πs, old_expected_X, old_rs
                 self.ll = best_ll
                 break

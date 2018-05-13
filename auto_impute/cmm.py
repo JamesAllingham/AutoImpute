@@ -55,7 +55,7 @@ class CMM(Model):
             self._calc_ML_est()
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
-            if self.ll < best_ll or self.ll - best_ll < ϵ:
+            if self.ll - best_ll < ϵ:
                 self.ps, self.πs, self.rs, self.expected_X = old_ps, old_πs, old_rs, old_expected_X
                 self.ll = best_ll
                 break
