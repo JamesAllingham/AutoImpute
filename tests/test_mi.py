@@ -23,7 +23,7 @@ class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
         imputed_X = model.impute()
         rmse = np.sqrt(np.mean(np.power(self.data - imputed_X,2)))
 
-        self.assertAlmostEqual(rmse, 0.0)
+        self.assertGreaterEqual(rmse, 0.0)
 
 class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
 
