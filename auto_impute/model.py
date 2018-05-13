@@ -8,14 +8,16 @@ import numpy.ma as ma
 
 class Model(object):
 
-    def __init__(self, data, verbose=None):
+    def __init__(self, data, verbose=None, normalise=True):
         """Creates the model object and fits the model to the data.
         """
         # normalise the data for numerical stability
-        self.mean = ma.mean(data, axis=0)
-        self.std = ma.std(data, axis=0)
-        # self.mean = 0
-        # self.std = 1
+        if normalise:
+            self.mean = ma.mean(data, axis=0)
+            self.std = ma.std(data, axis=0)
+        else:
+            self.mean = 0
+            self.std = 1
 
         self.X = (data - self.mean)/self.std
 
@@ -48,4 +50,7 @@ class Model(object):
     def sample(self, num_samples):
         """Samples from the density.
         """
+        return self._sample(num_samples)*self.std + self.mean
+
+    def _sample(self, num_samples):
         raise NotImplementedError

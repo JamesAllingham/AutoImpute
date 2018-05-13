@@ -166,7 +166,7 @@ class GMM(Model):
             k = np.argmax(self.rs[n, :])
 
             self.expected_X[n, m_locs] = self.μs[k, m_locs]
-            
+
             if o_locs.size:
                 Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                 Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
@@ -202,7 +202,7 @@ class GMM(Model):
             lls.append(np.log(prob))
         self.ll = np.mean(lls)
 
-    def sample(self, num_samples):
+    def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
         for n in range(self.N):

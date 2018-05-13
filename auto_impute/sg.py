@@ -95,7 +95,7 @@ class SingleGaussian(Model):
             lls.append(np.log(stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm)))
         self.ll = np.mean(lls)
 
-    def sample(self, num_samples):
+    def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data.copy()]*num_samples, axis=0)
 
         for n in range(self.N):

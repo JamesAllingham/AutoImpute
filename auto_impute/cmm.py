@@ -130,7 +130,7 @@ class CMM(Model):
 
         self.ll = np.mean(lls)
 
-    def sample(self, num_samples):
+    def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
         for i in range(num_samples):

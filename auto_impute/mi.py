@@ -33,6 +33,6 @@ class MeanImpute(Model):
         self.ll = np.mean(lls)
 
 
-    def sample(self, num_samples):
+    def _sample(self, num_samples):
         warnings.warn("Cannot sample from a mean imputation. Returning the means.")
         return np.stack([self.expected_X]*num_samples, axis=0)
