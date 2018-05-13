@@ -23,19 +23,18 @@ class GMM(Model):
         self.num_components = num_components
 
         # use k-means to initialise params
-        self.rs = np.zeros(shape=(self.N, self.num_components))
+        rs = np.zeros(shape=(self.N, self.num_components))
         mean_imputed_X = self.X.data.copy()
         mean_imputed_X[self.X.mask] = ma.mean(self.X, axis=0)[np.where(self.X.mask)[1]]
         kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
-        self.rs[np.arange(self.N), kmeans.labels_] = 1
+        rs[np.arange(self.N), kmeans.labels_] = 1
+        self.πs = np.mean(rs, axis=0)
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
         # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_components)], axis=0)
         self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
 
         self.rs = np.random.rand(self.N, self.num_components)
         self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
-        # self.rs = self.rs + np.random.rand(*self.rs.shape)*1e-1
-        # print(self.rs)
 
         self._calc_ML_est()
         self._calc_ll()
@@ -44,11 +43,10 @@ class GMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.expected_X.copy(), self.rs.copy()
+            old_μs, old_Σs, old_πs , old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.πs.copy(), self.expected_X.copy(), self.rs.copy()
 
             # E-step
             self._calc_rs()
-
             # M-step
             self._update_params()
             
@@ -56,7 +54,7 @@ class GMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.expected_X, self.rs = old_μs, old_Σs, old_expected_X, old_rs
+                self.μs, self.Σs, self.πs, self.expected_X, self.rs = old_μs, old_Σs, old_πs, old_expected_X, old_rs
                 self.ll = best_ll
                 break
             
@@ -82,15 +80,17 @@ class GMM(Model):
                     rs[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
                     
             else: # not actually too sure how to handle this situation
-                rs[n, :] = np.mean(self.rs, axis=0)
+                rs[n, :] = self.πs
 
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step
-    def _update_params(self):
-        # first fill in the missing values with each gaussian
-        self._calc_ML_est()  
-        
+    def _update_params(self): 
+
+        # recompute πs
+        self.πs = np.mean(self.rs, axis=0)
+
+        # now the other parameters that depend on X
         for k in range(self.num_components):
             # first fill in the missing elements of X
             X = self.X.data
@@ -143,14 +143,10 @@ class GMM(Model):
                 # self.Σs[k] += np.outer(diff, diff.T)*p[n]
                 self.Σs[k] += np.diag(diff * diff)*p[n]
 
-            # print(self.Σs[k])
             self.Σs[k] /= np.sum(p)
-            # print(self.Σs[k])
             self.Σs[k] += C
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σs[k] = regularise_Σ(self.Σs[k])
-            # print(self.Σs[k])
-            # print(C)
 
     def _calc_ML_est(self):
         self.expected_X = self.X.data.copy()
@@ -216,16 +212,16 @@ class GMM(Model):
             o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
             for i in range(num_samples):
-                choice = np.random.choice(self.num_components, p=self.rs[n, :])
-                μmo = self.μs[choice, m_locs]
+                k = np.random.choice(self.num_components, p=self.rs[n, :]) # maybe  self.πs?
+                μmo = self.μs[k, m_locs]
 
                 if o_locs.size:
-                    Σoo = self.Σs[choice, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[choice, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
-                    diff = x_row[o_locs] - self.μs[choice,o_locs]
+                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
+                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
+                    diff = x_row[o_locs] - self.μs[k,o_locs]
                     μmo += Σmo @ linalg.inv(Σoo) @ diff
 
-                Σmm = self.Σs[choice, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
+                Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
 
                 sampled_Xs[i, n, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
