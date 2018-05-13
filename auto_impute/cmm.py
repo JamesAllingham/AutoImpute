@@ -79,7 +79,7 @@ class CMM(Model):
                     tmp = 1
                     for d in o_locs:
                         tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
-                    rs[n, k] = tmp
+                    rs[n, k] = self.πs[k]*tmp
             else:
                 rs[n, :] = self.πs
 

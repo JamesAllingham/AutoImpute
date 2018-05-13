@@ -109,7 +109,7 @@ class MMM(Model):
             o_locs = np.where(~mask_row)[0]
             
             if not np.all(mask_row):  
-                rs[n, :] += np.array([
+                rs[n, :] += self.πs*np.array([
                     np.prod([
                         self.real_columns[d]*stats.norm.pdf(x_row[d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) +
                         (1 - self.real_columns[d])*stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])

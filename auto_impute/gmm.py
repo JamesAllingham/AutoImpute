@@ -77,7 +77,7 @@ class GMM(Model):
                     Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
                     μo = self.μs[k, o_locs]
 
-                    rs[n, k] = stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
+                    rs[n, k] = self.πs[k]*stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
                     
             else: # not actually too sure how to handle this situation
                 rs[n, :] = self.πs
