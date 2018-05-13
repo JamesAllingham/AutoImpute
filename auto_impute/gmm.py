@@ -164,13 +164,14 @@ class GMM(Model):
             o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
 
             k = np.argmax(self.rs[n, :])
-            diff = x_row[o_locs] - self.μs[k, o_locs]
 
             self.expected_X[n, m_locs] = self.μs[k, m_locs]
+            
             if o_locs.size:
                 Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
                 Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
                 
+                diff = x_row[o_locs] - self.μs[k, o_locs]
                 self.expected_X[n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
 
     def _calc_ll(self):

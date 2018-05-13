@@ -195,17 +195,18 @@ class MMM(Model):
             mask_row = self.X[n, :].mask
 
             if np.all(~mask_row): continue
-            
-            m_r_locs = np.where(np.logical_and(mask_row, self.real_columns))[0] 
-            m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.real_columns)))[0]
+            m_r_locs = np.where(np.logical_and(mask_row, self.real_columns >= 0.5))[0] 
+            m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.real_columns >= 0.5)))[0]
 
+            # determine which cluster to use
+            k = np.argmax(self.rs[n, :])
             # impute real values
             if m_r_locs.size:
-                self.expected_X[n, m_r_locs] = self.rs[n, :] @ self.μs[:, m_r_locs] # TODO: make this work with full cov
+                self.expected_X[n, m_r_locs] = self.μs[k, m_r_locs] # TODO: make this work with full cov
 
             # impute discrete values
             for d in m_d_locs:
-                self.expected_X[n, d] = self.unique_vals[d][np.argmax(np.sum(self.rs[n, :]*self.ps[:, d], axis=0))]
+                self.expected_X[n, d] = self.unique_vals[d][np.argmax(self.ps[k, d])]
 
     def _calc_ll(self):
         lls = []

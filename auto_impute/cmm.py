@@ -84,7 +84,6 @@ class CMM(Model):
 
     # M-step
     def _update_params(self):
-        # ps = np.zeros_like(self.ps)
         ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
 
         for k in range(self.num_components):
@@ -105,11 +104,10 @@ class CMM(Model):
             for d in range(self.num_features):
 
                 if self.X.mask[n, d]:
-                    # figure out the probabilities for each class based on the mixture responsibilites
-                    p = np.sum(self.rs[n, :]*self.ps[:, d], axis=0)
-
+                    # determine which cluster to use
+                    k = np.argmax(self.rs[n, :])
                     # now the max probability gives us the class
-                    class_idx = np.argmax(p)
+                    class_idx = np.argmax(self.ps[k, d])
 
                     self.expected_X[n, d] = self.unique_vals[d][class_idx]
 
