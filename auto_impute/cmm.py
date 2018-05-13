@@ -129,9 +129,9 @@ class CMM(Model):
                 tmp = 1
                 for d in range(self.num_features):
                     if self.X.mask[n, d]:
-                        tmp *= self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]] ,1, self.ps[k, d])
+                        tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]] ,1, self.ps[k, d])
 
-                prob += tmp
+                prob += self.rs[n, k]*tmp
             lls.append(np.log(prob)) 
 
         self.ll = np.mean(lls)
