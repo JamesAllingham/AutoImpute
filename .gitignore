@@ -1,6 +1,9 @@
 # Data directory -- some small/ useful files can be added manually but don't want to accidentally push big files
 data/
 
+# output files
+*repaired*
+
 # vs code crap
 .vscode
 
