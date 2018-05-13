@@ -68,9 +68,7 @@ def main(args):
 
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
-        # imputed_X = model.sample(1)
         imputed_X =  model.impute()
-        # print(imputed_X)
         print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
 
     print("LL: %s" % model.log_likelihood())
