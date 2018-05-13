@@ -49,6 +49,9 @@ class MMM(Model):
         kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
 
         # create parameters depending on the feature assingments
+        rs = np.zeros(shape=(self.N, self.num_components))
+        rs[np.arange(self.N), kmeans.labels_] = 1
+        self.πs = np.mean(rs, axis=0)
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
         self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
         # self.ps = np.array([[np.mean([self.one_hot_lookups[d][self.X.data[n, d]] for n in range(self.N) if ~self.X.mask[n, d]], axis=0) 
@@ -73,7 +76,7 @@ class MMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_ps, old_rs, old_expected_X = self.μs.copy(), self.Σs.copy(), self.ps.copy(), self.rs.copy(), self.expected_X.copy()
+            old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X = self.μs.copy(), self.Σs.copy(), self.ps.copy(), self.πs.copy(), self.rs.copy(), self.expected_X.copy()
             # E-step
             self._calc_rs()
 
@@ -84,7 +87,7 @@ class MMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.ps, self.rs, self.expected_X = old_μs, old_Σs, old_ps, old_rs, old_expected_X
+                self.μs, self.Σs, self.ps, self.πs, self.rs, self.expected_X = old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X
                 self.ll = best_ll
 
                 if self.verbose and not self.assignments_given:
@@ -117,19 +120,22 @@ class MMM(Model):
                 if np.all(rs[n, :] == 0): # deal with the case where no components want to take charge of an example
                     rs[n, :] = 1e-20
             else:
-                rs[n, :] = np.mean(self.rs, axis=0)
+                rs[n, :] = self.πs
 
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step
     def _update_params(self):
+        # update πs
+        self.πs = np.mean(self.rs, axis=0)
+
         # update the assignment params
         # print(self.real_columns)
         if not self.assignments_given:
             for n in range(self.N):
                 for d in range(self.num_features):
                     tmp = np.sum([stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) for k in range(self.num_components)])
-            foo = np.array([
+            cont = np.array([
                 np.sum([
                     np.sum([
                         self.rs[n, k]*stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d])
@@ -139,7 +145,7 @@ class MMM(Model):
                 ]) 
                 for d in range(self.num_features)
             ])
-            tmp = np.array([
+            disc = np.array([
                 np.sum([
                     np.sum([
                         self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d], 1, self.ps[k, d])
@@ -149,7 +155,7 @@ class MMM(Model):
                 ]) 
                 for d in range(self.num_features)
             ])
-            self.real_columns = foo/(tmp + foo)
+            self.real_columns = cont/(disc + cont)
 
         # update the discrete params
         ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
@@ -215,25 +221,25 @@ class MMM(Model):
             mask_row = self.X[n, :].mask
             if np.all(~mask_row): continue
 
-            m_r_locs = np.where(np.logical_and(mask_row, self.real_columns))[0] 
-            m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.real_columns)))[0] 
+            m_locs = np.where(mask_row)[0]
 
             prob = 0
             for k in range(self.num_components):
                 tmp = 1
 
-                # probability of real values
-                if m_r_locs.size:
-                    μmo = self.μs[k, m_r_locs] # TODO: make this work with full cov mat
-                    Σmm = self.Σs[k, :, :][np.ix_(m_r_locs, m_r_locs)]
+                for d in m_locs:
+                    # real part
+                    r_tmp = self.real_columns[d] * stats.norm.pdf(self.expected_X[n, d], loc=self.μs[k, d], scale=self.Σs[k, d, d])
 
-                    tmp *= self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_r_locs], mean=μmo, cov=Σmm, allow_singular=True)
+                    # disc part
+                    try:
+                        d_tmp = (1 - self.real_columns[d]) * stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]], 1, self.ps[k, d])
+                    except KeyError as _: # if the value cannot be looked up then its probabiltiy is 0 acroding the categorical distribution
+                        d_tmp = 0
 
-                # probability of discrete values
-                for d in m_d_locs:
-                    tmp *= self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]], 1, self.ps[k, d])
+                    tmp *= r_tmp + d_tmp
 
-                prob += tmp
+                prob += self.rs[n, k]*tmp
 
             lls.append(np.log(prob)) 
 
@@ -249,18 +255,17 @@ class MMM(Model):
                 # if there are no missing values then go to next iter
                 if np.all(~mask_row): continue
 
-                m_r_locs = np.where(np.logical_and(mask_row, self.real_columns))[0] 
-                m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.real_columns)))[0] 
+                m_locs = np.where(mask_row)[0]
                 k = np.random.choice(self.num_components, p=self.rs[n, :])
                 
-                # sample real values
-                μmo = self.μs[k, m_r_locs] # TODO: make this work with full cov mat
-                Σmm = self.Σs[k, :, :][np.ix_(m_r_locs, m_r_locs)]
-                sampled_Xs[i, n, m_r_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
-
-                # sample discrete values
-                for d in m_d_locs:
-                    sampled_Xs[i, n, d] = self.unique_vals[d][np.argmax(stats.multinomial.rvs(1, self.ps[k, d]))]
+                for d in m_locs:
+                    # sample to determine if real or not
+                    if np.random.rand(1) <= self.real_columns[d]:
+                        # sample real value
+                        sampled_Xs[i, n, d] = stats.norm.rvs(loc=self.μs[k, d], scale=self.Σs[k, d, d])
+                    else:
+                        # sample discrete value
+                        sampled_Xs[i, n, d] = self.unique_vals[d][np.argmax(stats.multinomial.rvs(1, self.ps[k, d]))]
 
         return sampled_Xs
         
