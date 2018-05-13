@@ -22,7 +22,7 @@ class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertGreaterEqual(ll, -0.28024941106327644)
+        self.assertAlmostEqual(ll, -0.28024941106327644)
 
 class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
@@ -32,7 +32,7 @@ class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertGreaterEqual(ll, -0.6490406849380511)
+        self.assertAlmostEqual(ll, -0.6490406849380511)
 class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
@@ -41,7 +41,7 @@ class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertGreaterEqual(ll, -0.16670302859010974)
+        self.assertAlmostEqual(ll, -0.16670302859010974)
 
 class IrisMCAR30LLTestCase(testing_utils.IrisMCAR30BaseTestCase):
 
@@ -51,4 +51,4 @@ class IrisMCAR30LLTestCase(testing_utils.IrisMCAR30BaseTestCase):
 
         ll = model.log_likelihood()
 
-        self.assertGreaterEqual(ll, -0.5453124374368254)
+        self.assertAlmostEqual(ll, -0.5453124374368254)
