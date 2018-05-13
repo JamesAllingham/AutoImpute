@@ -27,9 +27,12 @@ class CMM(Model):
             for i, val in enumerate(self.unique_vals[d])}
                 for d in range(self.num_features)]
 
-        # randomise the initial parameter values for the categorical distributions
+        # randomise the initial parameter values
+        # categorical distributions
         self.ps = np.array([[np.random.dirichlet(np.ones(len(self.unique_vals[d]))) 
             for d in range(self.num_features)] for k in range(self.num_components)])
+        # mixing proportions
+        self.πs = np.random.dirichlet([1]*self.num_components)
 
         # randomise initial responsibilities
         self.rs = np.random.dirichlet(np.ones((self.N,))*10, self.num_components).T
@@ -41,7 +44,7 @@ class CMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_ps, old_rs, old_expected_X = self.ps.copy(), self.rs.copy(), self.expected_X.copy()
+            old_ps, old_πs, old_rs, old_expected_X = self.ps.copy(), self.πs.copy(), self.rs.copy(), self.expected_X.copy()
 
             # E-step
             self._calc_rs()
@@ -53,7 +56,7 @@ class CMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll < best_ll or self.ll - best_ll < ϵ:
-                self.ps, self.rs, self.expected_X = old_ps, old_rs, old_expected_X
+                self.ps, self.πs, self.rs, self.expected_X = old_ps, old_πs, old_rs, old_expected_X
                 self.ll = best_ll
                 break
             
@@ -78,14 +81,17 @@ class CMM(Model):
                         tmp *= stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
                     rs[n, k] = tmp
             else:
-                rs[n, :] = np.mean(self.rs, axis=0)
+                rs[n, :] = self.πs
 
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step
     def _update_params(self):
-        ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
+        # recompute πs
+        self.πs = np.mean(self.rs, axis=0)
 
+        # now recompute ps
+        ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
         for k in range(self.num_components):
             for d in range(self.num_features):
                 tmp = 0
@@ -143,10 +149,9 @@ class CMM(Model):
                 for d in range(self.num_features):
 
                     if self.X.mask[n, d]:
-                        # figure out the probabilities for each class based on the mixture responsibilites
-                        p = np.sum(self.rs[n, :]*self.ps[:, d], axis=0) # TODO: maybe sample a choice rather than doing a weighted average
+                        k = np.random.choice(self.num_components, p=self.rs[n, :]) # maybe  self.πs?
                         # sample from a categorical distro using these probs
-                        class_idx = np.argmax(stats.multinomial.rvs(1, p))
+                        class_idx = np.argmax(stats.multinomial.rvs(1, self.ps[k, d]))
 
                         sampled_Xs[i, n, d] = self.unique_vals[d][class_idx]
 
