@@ -52,6 +52,20 @@ def main(args):
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
+    if args.sample:
+        samples_Xs =  model.sample(args.sample)
+        for s in range(args.sample):
+            if args.header: 
+                np.savetxt("repaired_%s.txt" % s, samples_Xs[s, :, :], delimiter=args.delimiter, header=reader.get_column_names)
+            else: 
+                np.savetxt("repaired_%s.txt" % s, samples_Xs[s, :, :], delimiter=args.delimiter)
+    else:
+        imputed_X =  model.impute()
+        if args.header: 
+            np.savetxt("repaired.txt", imputed_X, delimiter=args.delimiter, header=reader.get_column_names)
+        else: 
+            np.savetxt("repaired.txt", imputed_X, delimiter=args.delimiter)
+
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
         # imputed_X = model.sample(1)
@@ -108,7 +122,7 @@ if __name__ == "__main__":
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument("-s", "--sample", help="number of samples to take from distribution",
                               type=int, default=None)
-    output_group.add_argument("-mm", "--mean_mode", help="take mean or mode of continuous or discrete distributions, respectively (default option)",
+    output_group.add_argument("-m", "--mode", help="impute using the mode of the distribution (default option)",
                               action="store_true")
     parsed_args = parser.parse_args()
     
