@@ -145,7 +145,7 @@ class BGMM(Model):
             self.νs[k] = self.ν0 + Ns[k]
             self.ms[k] = 1/self.βs[k]*(self.β0*self.m0 + Ns[k]*x_bar)
             W_inv = linalg.inv(self.W0)
-            W_inv += 1/Ns[k]*np.einsum('ij,ikl->kl', self.rs[:, k, np.newaxis], np.einsum('ij,ik->ijk' ,x_rep - x_bar, x_rep - x_bar))
+            W_inv += np.einsum('ij,ikl->kl', self.rs[:, k, np.newaxis], np.einsum('ij,ik->ijk' ,x_rep - x_bar, x_rep - x_bar))
             W_inv += self.β0*Ns[k]/(self.β0 + Ns[k])*np.outer(x_bar - self.m0, x_bar - self.m0)
             self.Ws[k] = np.linalg.inv(W_inv)
 
