@@ -150,8 +150,8 @@ class BGMM(Model):
             self.Ws[k] = np.linalg.inv(W_inv)
 
     def _calc_ML_est(self):
-        # Note: the expectation for each mean is simply self.ms[k],
-        # similarly, the expectation for the precision is self.νs[k]*self.Ws[k]
+        # Note: the mode for each mean is simply self.ms[k],
+        # similarly, the mode for the precision is (self.νs[k] - D - 1)*self.Ws[k]
         self.expected_X = self.X.data
 
         for n in range(self.N):
@@ -164,7 +164,7 @@ class BGMM(Model):
 
             k = np.argmax(self.rs[n, :])
             μ_k = self.ms[k]
-            Λ_k = self.νs[k]*self.Ws[k]
+            Λ_k = (self.νs[k] - self.num_features - 1)*self.Ws[k]
             self.expected_X[n, m_locs] = μ_k[m_locs]
 
             # if there were any observations we can use that infomation to further update our estimate
