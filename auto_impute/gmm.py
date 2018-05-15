@@ -18,9 +18,37 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_components, verbose=None):
+    def __init__(self, data, num_components, verbose=None, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
         Model.__init__(self, data, verbose=verbose)
         self.num_components = num_components
+
+        self.map_est = map_est
+
+        # hyper-parameters
+        if α0 is not None:
+            self.α0 = α0
+        else:
+            self.α0 = 1
+
+        if m0 is not None:
+            self.m0 = m0
+        else:
+            self.m0 = np.zeros(shape=(self.num_features, ))
+        
+        if β0 is not None:
+            self.β0 = β0
+        else:
+            self.β0 = 1e-3
+
+        if W0 is not None:
+            self.W0 = W0
+        else:
+            self.W0 = np.eye(self.num_features)
+        
+        if ν0 is not None:
+            self.ν0 = ν0
+        else:
+            self.ν0 = self.num_features
 
         # use k-means to initialise params
         rs = np.zeros(shape=(self.N, self.num_components))
@@ -82,6 +110,7 @@ class GMM(Model):
             else: # not actually too sure how to handle this situation
                 rs[n, :] = self.πs
 
+        rs += 1e-12 # in case none of the components want to take charge of an example
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step
@@ -146,7 +175,23 @@ class GMM(Model):
             self.Σs[k] /= np.sum(p)
             self.Σs[k] += C
             # regularisation term ensuring that the cov matrix is always pos def
-            self.Σs[k] = regularise_Σ(self.Σs[k])
+            # self.Σs[k] = regularise_Σ(self.Σs[k])
+
+            # now if we want a MAP estimate rather than the MLE, we can use these statistics calcualted above to update prior beliefs
+            if self.map_est:
+                # we need one more statistic N_k
+                N_k = np.sum(self.rs[:, k])
+
+                # update the priors
+                β = self.β0 + N_k
+                m = (self.β0*self.m0 + N_k*self.μs[k])/(self.β0 + N_k)
+                ν = self.ν0 + N_k
+                W = self.W0 + self.Σs[k] + self.β0*N_k/(self.β0 + N_k)*np.diag((self.μs[k] - self.m0)**2)
+
+                # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
+                self.μs[k] = m
+                self.Σs[k] = W/(ν + self.num_features + 1)
+                # if k == 0: print(self.Σs[k])
 
     def _calc_ML_est(self):
         self.expected_X = self.X.data.copy()
