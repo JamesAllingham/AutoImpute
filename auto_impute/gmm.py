@@ -110,7 +110,7 @@ class GMM(Model):
             else: # not actually too sure how to handle this situation
                 rs[n, :] = self.πs
 
-        rs += 1e-12 # in case none of the components want to take charge of an example
+        rs += 1e-64 # in case none of the components want to take charge of an example
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
 
     # M-step

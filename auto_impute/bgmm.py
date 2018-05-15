@@ -116,7 +116,7 @@ class BGMM(Model):
                 tmp = tmp @ (x_row[o_locs] - self.ms[k][o_locs])
                 log_rs[n, k] -= tmp
 
-        rs = np.exp(log_rs) + 1e-9 # incase none of the components want to take charge of an example
+        rs = np.exp(log_rs) + 1e-64 # incase none of the components want to take charge of an example
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)        
 
     # "M-step"
