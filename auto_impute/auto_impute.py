@@ -38,7 +38,7 @@ def main(args):
         model = bgmm.BGMM(data, args.num_components, verbose=args.verbose)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.gaussian_mixture:
-        model = gmm.GMM(data, args.num_components, verbose=args.verbose)
+        model = gmm.GMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.single_gaussian:
         model = sg.SingleGaussian(data, verbose=args.verbose)
@@ -100,13 +100,15 @@ if __name__ == "__main__":
                         type=float, default=1e-1)
     parser.add_argument("-n", "--max_iters", help="maximum number of iterations to fit model (default: 100)",
                         type=int, default=100)
+    parser.add_argument("-mle", "--ml_estimation", help="use MLE rather than MAP for non-Bayesian models (default: False)",
+                        action="store_true")
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
     #                         action="store_true")
     # speed_group.add_argument("-e", "--exhaustive", help="exhaustive impute",
     #                          action="store_true")
-    model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation",
+    model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation (default option)",
                              action="store_true")
     model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
                              action="store_true")
@@ -116,7 +118,7 @@ if __name__ == "__main__":
                              action="store_true")
     model_group.add_argument("-vigmm", "--infinite_gmm", help="impute using a infinite Gaussian mixture model fitted with Variational Bayes",
                              action="store_true")
-    model_group.add_argument("-cmm", "--categorical_mixture", help="impute using a Categorical mixture model fitted with EM",
+    model_group.add_argument("-cmm", "--categorical_mixture", help="impute using a categorical mixture model fitted with EM",
                              action="store_true")
     model_group.add_argument("-mmm", "--mixed_mixture", help="impute using a mixed (consisiting of categorical and gaussian components) mixture model fitted with EM",
                              action="store_true")
