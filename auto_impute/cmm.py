@@ -15,9 +15,22 @@ from scipy import stats
 
 class CMM(Model):
 
-    def __init__(self, data, num_components, verbose=None):
+    def __init__(self, data, num_components, verbose=None, α0=None, a0=None, map_est=True):
         Model.__init__(self, data, verbose=verbose)
         self.num_components = num_components
+
+        self.map_est = map_est
+
+        # hyper-parameters
+        if α0 is not None: # pseudo counts for the mixing proportions
+            self.α0 = α0
+        else:
+            self.α0 = 1
+
+        if a0 is not None: # pseudo counts for the catagoricals
+            self.a0 = a0
+        else:
+            self.a0 = 1
 
         # get list of unique values in each column
         self.unique_vals = [np.unique(self.X[:, d].compressed()) for d in range(self.num_features)]
@@ -88,18 +101,30 @@ class CMM(Model):
     # M-step
     def _update_params(self):
         # recompute πs
-        self.πs = np.mean(self.rs, axis=0)
+        if self.map_est:
+                Ns = np.sum(self.rs, axis=0)
+
+                # update the priors
+                αs = self.α0 + Ns
+                self.πs = (αs - 1)/np.sum(αs - 1)
+        else:
+            self.πs = np.mean(self.rs, axis=0)
+
 
         # now recompute ps
-        ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
+        if self.map_est:
+            # include pseudo counts
+            ps = np.array([[np.array([self.a0]*self.unique_vals[d].size, dtype=np.float64) for d in range(self.num_features)] for k in range(self.num_components)])
+        else:
+            # start counts at 0
+            ps = np.array([[np.zeros(shape=(self.unique_vals[d].size), dtype=np.float64) for d in range(self.num_features)] for k in range(self.num_components)])
+
         for k in range(self.num_components):
             for d in range(self.num_features):
-                tmp = 0
                 for n in range(self.N):
-                    tmp += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d])
+                    ps[k, d] += self.rs[n, k]*(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d])
 
-                tmp /= np.sum(self.rs[:, k])
-                ps[k, d] = tmp
+                ps[k, d] /= np.sum(ps[k, d])
 
         self.ps = ps
         

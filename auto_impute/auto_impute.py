@@ -44,7 +44,7 @@ def main(args):
         model = sg.SingleGaussian(data, verbose=args.verbose)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.categorical_mixture:
-        model = cmm.CMM(data, args.num_components, verbose=args.verbose)
+        model = cmm.CMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.mixed_mixture:
         model = mmm.MMM(data, args.num_components, verbose=args.verbose, assignments=args.column_assignments)

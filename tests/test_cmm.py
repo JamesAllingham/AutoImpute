@@ -17,7 +17,7 @@ import testing_utils
 class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 
     def runTest(self):
-        model = CMM(self.data, 3, verbose=False)
+        model = CMM(self.data, 3, verbose=False, map_est=False)
         model.fit()
 
         ll = model.log_likelihood()
@@ -27,7 +27,7 @@ class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
 class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 
     def runTest(self):
-        model = CMM(self.data, 3, verbose=False)
+        model = CMM(self.data, 3, verbose=False, map_est=False)
         model.fit()
 
         ll = model.log_likelihood()
@@ -37,7 +37,7 @@ class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
 class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
-        model = CMM(self.data, 3, verbose=False)
+        model = CMM(self.data, 3, verbose=False, map_est=False)
         model.fit()
 
         ll = model.log_likelihood()
@@ -47,7 +47,7 @@ class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 class IrisMCAR30LLTestCase(testing_utils.IrisMCAR30BaseTestCase):
 
     def runTest(self):
-        model = CMM(self.data, 3, verbose=False)
+        model = CMM(self.data, 3, verbose=False, map_est=False)
         model.fit()
 
         ll = model.log_likelihood()
