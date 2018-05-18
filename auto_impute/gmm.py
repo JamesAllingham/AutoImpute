@@ -118,6 +118,7 @@ class GMM(Model):
 
         # recompute πs
         self.πs = np.mean(self.rs, axis=0)
+        αs = np.array([self.α0]*self.num_components)
 
         # now the other parameters that depend on X
         for k in range(self.num_components):
@@ -183,6 +184,7 @@ class GMM(Model):
                 N_k = np.sum(self.rs[:, k])
 
                 # update the priors
+                αs[k] = self.α0 + N_k
                 β = self.β0 + N_k
                 m = (self.β0*self.m0 + N_k*self.μs[k])/(self.β0 + N_k)
                 ν = self.ν0 + N_k
@@ -192,6 +194,11 @@ class GMM(Model):
                 self.μs[k] = m
                 self.Σs[k] = W/(ν + self.num_features + 1)
                 # if k == 0: print(self.Σs[k])
+        
+        if self.map_est:
+            # print(self.πs)
+            self.πs = (αs - 1)/np.sum(αs - 1)
+            # print(self.πs)
 
     def _calc_ML_est(self):
         self.expected_X = self.X.data.copy()
