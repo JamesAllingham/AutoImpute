@@ -161,6 +161,13 @@ class CMM(Model):
 
         self.ll = np.mean(lls)
 
+    def calc_BIC(self):
+        num_parameters = self.πs.size
+        for k in range(self.num_components):
+            for d in range(self.num_features):
+                num_parameters += self.ps[k, d].size
+        return np.log(self.N)*num_parameters - 2*self.ll*self.N
+
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 

@@ -250,6 +250,10 @@ class GMM(Model):
             lls.append(np.log(prob))
         self.ll = np.mean(lls)
 
+    def calc_BIC(self):
+        num_parameters = self.μs.size + self.πs.size + self.Σs.size
+        return np.log(self.N)*num_parameters - 2*self.ll*self.N
+
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
