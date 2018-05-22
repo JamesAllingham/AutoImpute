@@ -145,7 +145,7 @@ class BGMM(Model):
             self.νs[k] = self.ν0 + Ns[k]
             self.ms[k] = 1/self.βs[k]*(self.β0*self.m0 + Ns[k]*x_bar)
             W_inv = linalg.inv(self.W0)
-            W_inv += np.einsum('ij,ikl->kl', self.rs[:, k, np.newaxis], np.einsum('ij,ik->ijk' ,x_rep - x_bar, x_rep - x_bar))
+            W_inv += 1/Ns[k]*np.einsum('ij,ikl->kl', self.rs[:, k, np.newaxis], np.einsum('ij,ik->ijk' ,x_rep - x_bar, x_rep - x_bar))
             W_inv += self.β0*Ns[k]/(self.β0 + Ns[k])*np.outer(x_bar - self.m0, x_bar - self.m0)
             self.Ws[k] = np.linalg.inv(W_inv)
 
@@ -197,6 +197,10 @@ class BGMM(Model):
 
             lls.append(np.log(tmp))
         self.ll = np.mean(lls)
+
+    def calc_BIC(self):
+        num_parameters = np.array(self.ms).size + np.array(self.Ws).size + np.array(self.βs).size + np.array(self.αs).size + np.array(self.νs).size
+        return np.log(self.N)*num_parameters - 2*self.ll*self.N
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
