@@ -52,6 +52,8 @@ def main(args):
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
+    print("")
+
     if args.sample:
         samples_Xs =  model.sample(args.sample)
         for s in range(args.sample):
