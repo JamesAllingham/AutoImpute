@@ -31,7 +31,7 @@ class MMM(Model):
                 for d in range(self.num_features)]
 
         # check if assignments were made and if so whether or not they were valid
-        self.assignments_given = False 
+        self.αssignments_given = False 
         if assignments != "":
             if len(assignments) != self.num_features:
                 raise RuntimeError("%s assignemnt(s) were given. Please give one assignemnt per column (%s assignment(s))" % (len(assignments), self.num_features))
@@ -40,7 +40,7 @@ class MMM(Model):
                 if assignment != 'r' and assignment != 'd':
                     raise RuntimeError("Invalid assignment ('%s') given for column %s. Use 'r' and 'd' for real and discrete valued columns respectively." % (assignment, d))
 
-            self.assignments_given = True    
+            self.αssignments_given = True    
                
 
         # use k-means to initialise gaussian params
@@ -54,20 +54,23 @@ class MMM(Model):
         self.πs = np.mean(rs, axis=0)
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
         self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
-        # self.ps = np.array([[np.mean([self.one_hot_lookups[d][self.X.data[n, d]] for n in range(self.N) if ~self.X.mask[n, d]], axis=0) 
-        #     for d in range(self.num_features)] for k in range(self.num_components)])
-        # randomly init the catagorical params
-        self.ps = np.array([[np.random.dirichlet(np.ones(len(self.unique_vals[d]))) 
+        self.ps = np.array([[np.mean([self.one_hot_lookups[d][self.X.data[n, d]] for n in range(self.N) if ~self.X.mask[n, d]], axis=0) 
             for d in range(self.num_features)] for k in range(self.num_components)])
+        # randomly init the catagorical params
+        # self.ps = np.array([[np.random.dirichlet(np.ones(len(self.unique_vals[d]))) 
+            # for d in range(self.num_features)] for k in range(self.num_components)])
 
         # randomise initial responsibilities
         self.rs = np.random.dirichlet(np.ones((self.N,))*10, self.num_components).T
 
         # for the column types, if they havent been given then randomly choose them
-        if self.assignments_given:
-            self.real_columns = np.array([1 if assignment == 'r' else 0 for assignment in assignments])
+        if self.αssignments_given:
+            self.αs = np.array([1 if assignment == 'r' else 0 for assignment in assignments])
         else:
-            self.real_columns = np.random.rand(self.num_features)
+            self.αs = np.array([0.5]*self.num_features) #np.random.rand(self.num_features)
+
+        # use the same values for the initial column type priors
+        self.ρs = self.αs
 
         self._calc_ML_est()
         self._calc_ll()
@@ -76,9 +79,9 @@ class MMM(Model):
         best_ll = self.ll
         if self.verbose: print("Fitting model:")
         for i in range(max_iters):
-            old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X = self.μs.copy(), self.Σs.copy(), self.ps.copy(), self.πs.copy(), self.rs.copy(), self.expected_X.copy()
+            old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X, old_αs, old_ρs = self.μs.copy(), self.Σs.copy(), self.ps.copy(), self.πs.copy(), self.rs.copy(), self.expected_X.copy(), self.αs.copy(), self.ρs.copy()
             # E-step
-            self._calc_rs()
+            self._update_latent()
 
             # M-step
             self._update_params()
@@ -87,11 +90,11 @@ class MMM(Model):
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
             if self.ll - best_ll < ϵ:
-                self.μs, self.Σs, self.ps, self.πs, self.rs, self.expected_X = old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X
+                self.μs, self.Σs, self.ps, self.πs, self.rs, self.expected_X, self.αs, self.ρs = old_μs, old_Σs, old_ps, old_πs, old_rs, old_expected_X, old_αs, old_ρs
                 self.ll = best_ll
 
-                if self.verbose and not self.assignments_given:
-                    print("\nFinal assignments (probability for real): " + " ".join(["%f" % x for x in self.real_columns]))
+                if self.verbose and not self.αssignments_given:
+                    print("\nFinal assignments (probability for real): " + " ".join(["%f" % x for x in self.αs]))
 
                 break
             
@@ -100,7 +103,7 @@ class MMM(Model):
         print("")
 
     # E-step
-    def _calc_rs(self):
+    def _update_latent(self):
         rs = np.zeros(shape=(self.N, self.num_components))
         
         for n in range(self.N):
@@ -111,51 +114,43 @@ class MMM(Model):
             if not np.all(mask_row):  
                 rs[n, :] += self.πs*np.array([
                     np.prod([
-                        self.real_columns[d]*stats.norm.pdf(x_row[d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) +
-                        (1 - self.real_columns[d])*stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
+                        self.ρs[d]*stats.norm.pdf(x_row[d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) +
+                        (1 - self.ρs[d])*stats.multinomial.pmf(self.one_hot_lookups[d][x_row[d]], 1, self.ps[k, d])
                         for d in o_locs
                     ])
                     for k in range(self.num_components)
                 ])
                 if np.all(rs[n, :] == 0): # deal with the case where no components want to take charge of an example
-                    rs[n, :] = 1e-20
+                    rs[n, :] = 1e-64
             else:
                 rs[n, :] = self.πs
-
+                
         self.rs = rs/np.sum(rs, axis=1, keepdims=True)
+
+        if not self.αssignments_given:
+            with np.errstate(over='ignore'):
+                αs = self.ρs**1/((1 - self.ρs)**1 + 1e-64)*np.array([
+                    np.prod([
+                        np.sum([
+                            self.πs[k]*stats.norm.pdf(self.X.data[n, d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) for k in range(self.num_components)
+                        ])/
+                        np.sum([
+                            self.πs[k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.X.data[n, d]], 1, self.ps[k, d]) for k in range(self.num_components)
+                        ])
+                        for n in range(self.N) if not self.X.mask[n, d]
+                    ])
+                    for d in range(self.num_features)
+                ])
+                αs[np.isinf(αs)] = np.finfo(np.float64).max
+            self.αs = αs/(αs + 1)
 
     # M-step
     def _update_params(self):
         # update πs
         self.πs = np.mean(self.rs, axis=0)
 
-        # update the assignment params
-        # print(self.real_columns)
-        if not self.assignments_given:
-            for n in range(self.N):
-                for d in range(self.num_features):
-                    tmp = np.sum([stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d]) for k in range(self.num_components)])
-            cont = np.array([
-                np.sum([
-                    np.sum([
-                        self.rs[n, k]*stats.norm.pdf(self.X.data[n, d] if not self.X.mask[n, d] else self.μs[k][d], loc=self.μs[k][d], scale=np.diag(self.Σs[k])[d])
-                        for k in range(self.num_components)
-                    ])
-                    for n in range(self.N)
-                ]) 
-                for d in range(self.num_features)
-            ])
-            disc = np.array([
-                np.sum([
-                    np.sum([
-                        self.rs[n, k]*stats.multinomial.pmf(self.one_hot_lookups[d][self.X.data[n, d]] if not self.X.mask[n, d] else self.ps[k, d], 1, self.ps[k, d])
-                        for k in range(self.num_components)
-                    ])
-                    for n in range(self.N)
-                ]) 
-                for d in range(self.num_features)
-            ])
-            self.real_columns = cont/(disc + cont)
+        # update ρs        
+        self.ρs = self.αs
 
         # update the discrete params
         ps = np.array([[np.zeros(shape=(self.unique_vals[d].size)) for d in range(self.num_features)] for k in range(self.num_components)])
@@ -201,8 +196,8 @@ class MMM(Model):
             mask_row = self.X[n, :].mask
 
             if np.all(~mask_row): continue
-            m_r_locs = np.where(np.logical_and(mask_row, self.real_columns >= 0.5))[0] 
-            m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.real_columns >= 0.5)))[0]
+            m_r_locs = np.where(np.logical_and(mask_row, self.αs >= 0.5))[0] 
+            m_d_locs = np.where(np.logical_and(mask_row, np.logical_not(self.αs >= 0.5)))[0]
 
             # determine which cluster to use
             k = np.argmax(self.rs[n, :])
@@ -229,11 +224,11 @@ class MMM(Model):
 
                 for d in m_locs:
                     # real part
-                    r_tmp = self.real_columns[d] * stats.norm.pdf(self.expected_X[n, d], loc=self.μs[k, d], scale=self.Σs[k, d, d])
+                    r_tmp = self.αs[d] * stats.norm.pdf(self.expected_X[n, d], loc=self.μs[k, d], scale=self.Σs[k, d, d])
 
                     # disc part
                     try:
-                        d_tmp = (1 - self.real_columns[d]) * stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]], 1, self.ps[k, d])
+                        d_tmp = (1 - self.αs[d]) * stats.multinomial.pmf(self.one_hot_lookups[d][self.expected_X[n, d]], 1, self.ps[k, d])
                     except KeyError as _: # if the value cannot be looked up then its probabiltiy is 0 acroding the categorical distribution
                         d_tmp = 0
 
@@ -260,7 +255,7 @@ class MMM(Model):
                 
                 for d in m_locs:
                     # sample to determine if real or not
-                    if np.random.rand(1) <= self.real_columns[d]:
+                    if np.random.rand(1) <= self.αs[d]:
                         # sample real value
                         sampled_Xs[i, n, d] = stats.norm.rvs(loc=self.μs[k, d], scale=self.Σs[k, d, d])
                     else:
