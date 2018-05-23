@@ -3,102 +3,79 @@
 # test_mi.py
 # Tests for the mi module
 
-import unittest
 import sys
 import numpy as np
-import numpy.ma as ma 
 
 # add both the relative and absolute paths for the code to test
 sys.path.append("../auto_impute/")
 sys.path.append("auto_impute/")
 
 from mi import MeanImpute
-from testing_utils import NoMissingValuesBaseTestCase, OneValueBaseTestCase,TwoValuesBaseTestCase
+import testing_utils
 
-class NoMissingValuesRMSETestCase(NoMissingValuesBaseTestCase):
+class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
         model = MeanImpute(self.data, verbose=False)
 
-        imputed_X = model.impute()
+        imputed_X = model.ml_imputation()
         rmse = np.sqrt(np.mean(np.power(self.data - imputed_X,2)))
 
         self.assertAlmostEqual(rmse, 0.0)
 
-class NoMissingValuesLLTestCase(NoMissingValuesBaseTestCase):
+class NoMissingValuesLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+
+    def runTest(self):
+        model = MeanImpute(self.data, verbose=False)  
+
+        lls = model.log_likelihood(complete=True, return_individual=True)
+
+        self.assertTrue(np.all(lls < 0))
+
+class OneValueResultTestCase(testing_utils.OneValueBaseTestCase):
 
     def runTest(self):
         model = MeanImpute(self.data, verbose=False)
 
-        ll = model.log_likelihood()
-
-        self.assertTrue(np.isnan(ll))
-
-class OneValueLLTestCase(OneValueBaseTestCase):
-
-    def runTest(self):
-        model = MeanImpute(self.data, verbose=False)
-
-        ll = model.log_likelihood()
-
-        self.assertEqual(ll, 7.604817318859187)
-
-class OneValueResultTestCase(OneValueBaseTestCase):
-
-    def runTest(self):
-        model = MeanImpute(self.data, verbose=False)
-
-        result = model.impute()
+        result = model.ml_imputation()
 
         self.assertTrue(np.array_equal(result, np.array([1,2,3,1,2,3,1,2,3]).reshape(3,3)))
 
-class TwoValuesLLTestCase(TwoValuesBaseTestCase):
+class TwoValuesResultTestCase(testing_utils.TwoValuesBaseTestCase):
 
     def runTest(self):
         model = MeanImpute(self.data, verbose=False)
 
-        ll = model.log_likelihood()
-
-        self.assertEqual(ll, 7.604817318859187)
-
-class TwoValuesResultTestCase(TwoValuesBaseTestCase):
-
-    def runTest(self):
-        model = MeanImpute(self.data, verbose=False)
-
-        result = model.impute()
+        result = model.ml_imputation()
 
         self.assertTrue(np.array_equal(result, np.array([1,3,5,6,4,2,3.5,3.5,3.5]).reshape(3,3)))
 
-class AllMissingValuesTestCase(unittest.TestCase):
-
-    def setUp(self):
-        data = np.array([np.nan]*9).reshape(3,3)
-        mask = np.isnan(data)
-        self.data = ma.masked_array(data, mask)
+class AllMissingValuesTestCase(testing_utils.AllMissingBaseTestCase):
 
     def runTest(self):
-        with self.assertRaises(RuntimeError):
+        model = MeanImpute(self.data, verbose=False)
+
+        result = model.ml_imputation()
+
+        self.assertTrue(np.all(result == 0))
+
+class AllMissingValuesLLTestCase(testing_utils.AllMissingBaseTestCase):
+
+    def runTest(self):
+        model = MeanImpute(self.data, verbose=False)  
+
+        lls = model.log_likelihood(complete=True, return_individual=True)
+
+        self.assertTrue(np.all(lls > 0))
+
+class NoRowsTestCase(testing_utils.NoRowsBaseTestCase):
+
+    def runTest(self):
+        with self.assertRaises(SystemExit):
             MeanImpute(self.data, verbose=False)
 
-class NoRowsTestCase(unittest.TestCase):
-
-    def setUp(self):
-        data = np.zeros(shape=(0,3), dtype=np.float32)
-        mask = np.isnan(data)
-        self.data = ma.masked_array(data, mask)
+class NoColsTestCase(testing_utils.NoColsBaseTestCase):
 
     def runTest(self):
-        with self.assertRaises(RuntimeError):
-            MeanImpute(self.data, verbose=True)
-
-class NoColsTestCase(unittest.TestCase):
-
-    def setUp(self):
-        data = np.zeros(shape=(3,0), dtype=np.float32)
-        mask = np.isnan(data)
-        self.data = ma.masked_array(data, mask)
-
-    def runTest(self):
-        with self.assertRaises(RuntimeError):
-            MeanImpute(self.data, verbose=True)
+        with self.assertRaises(SystemExit):
+            MeanImpute(self.data, verbose=False)
