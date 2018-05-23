@@ -7,18 +7,43 @@ import unittest
 import numpy as np
 import numpy.ma as ma
 
+class NoRowsBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        data = np.zeros(shape=(0,3), dtype=np.float32)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
+class NoColsBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        data = np.zeros(shape=(3,0), dtype=np.float32)
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
 class NoMissingValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        # create a fake data file to impute
         data = np.array([[   1,-2.5,  0],
-                              [  12,   5,6.5],
-                              [-7.5,  10, -9],
-                              [   0,   0,  4]],
+                         [  12,   5,6.5],
+                         [-7.5,  10, -9],
+                         [   0,   0,  4]],
                               dtype=np.float32)
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
 
+class AllMissingBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        data = np.array(
+            [[np.nan, np.nan, np.nan],
+             [np.nan, np.nan, np.nan],
+             [np.nan, np.nan, np.nan]],
+             dtype=np.float32
+        )
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+        
 class OneValueBaseTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -30,7 +55,6 @@ class OneValueBaseTestCase(unittest.TestCase):
         )
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
-        
 
 class TwoValuesBaseTestCase(unittest.TestCase):
 
