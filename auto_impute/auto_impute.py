@@ -14,6 +14,8 @@ import bgmm
 import vigmm
 import cmm
 import mmm
+import dp
+import mixed
 
 def main(args):
     # set random seed
@@ -49,6 +51,10 @@ def main(args):
     elif args.mixed_mixture:
         model = mmm.MMM(data, args.num_components, verbose=args.verbose, assignments=args.column_assignments)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
+    elif args.dirichlet_process:
+        model = dp.DP(data, verbose=args.verbose)
+    elif args.mixed_dp_gmm:
+        model = mixed.Mixed(data, verbose=args.verbose, assignments=args.column_assignments)
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
@@ -124,6 +130,10 @@ if __name__ == "__main__":
                              action="store_true")
     model_group.add_argument("-mmm", "--mixed_mixture", help="impute using a mixed (consisiting of categorical and gaussian components) mixture model fitted with EM",
                              action="store_true")
+    model_group.add_argument("-dp", "--dirichlet_process", help="impute using a Dirichlet process",
+                            action="store_true")
+    model_group.add_argument("-mix", "--mixed_dp_gmm", help="impute using a combination of DPs and GMMs",
+                            action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument("-s", "--sample", help="number of samples to take from distribution",
