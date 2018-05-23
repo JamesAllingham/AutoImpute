@@ -3,14 +3,21 @@
 # Model.py
 # Base class for all imputation models
 
+import sys
+
 import numpy as np
 import numpy.ma as ma
+
+from utilities import print_err
 
 class Model(object):
 
     def __init__(self, data, verbose=None, normalise=True):
         """Creates the model object and fits the model to the data.
         """
+        self.N = data.shape[0]
+        self.D = data.shape[1]
+
         # normalise the data for numerical stability
         if normalise:
             self.mean = ma.mean(data, axis=0)
@@ -21,34 +28,40 @@ class Model(object):
 
         self.X = (data - self.mean)/self.std
 
-        self.N = data.shape[0]
-        self.num_features = data.shape[1]
-
         # check that the data is somewhat reasonable
-        if self.N < 1: raise RuntimeError("Input data must have at least one example.") # consider adding specific exception classes for these
-        if self.num_features < 1: raise RuntimeError("Input data must have at least one feature.")
-        # if np.any(np.all(data.mask, axis=0)): raise RuntimeError("Each feature must have at least one observed value.")
+        if self.N < 1: 
+            print_err("Input data must have at least one example.")
+            sys.exit(1)
+
+        if self.D < 1:
+            print_err("Input data must have at least one feature.")
+            sys.exit(1)
 
         self.expected_X = np.array([])
-        self.ll = None
-        self.lls = None
+        self.lls = np.zeros_like(self.X.data)
 
         if verbose is None:
             self.verbose = False
         else:
             self.verbose = verbose
 
-    def impute(self):
+    def ml_imputation(self):
         """Returns the imputed data
         """
         return self.expected_X*self.std + self.mean
 
-    def log_likelihood(self, return_individual=False):
+    def log_likelihood(self, complete=False, return_individual=False, return_mean=False):
         """Calculates the log likelihood of the repaired data given the model paramers.
         """
+        lls = self.lls[self.X.mask] if not complete else self.lls
+
         if return_individual:
-            return self.lls
-        return self.ll
+            return lls
+
+        if return_mean:
+            return np.mean(lls)
+
+        return np.sum(lls)
 
     def sample(self, num_samples):
         """Samples from the density.
