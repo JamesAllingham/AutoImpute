@@ -16,18 +16,18 @@ class MeanImpute(Model):
         Model.__init__(self, data, verbose=verbose, normalise=False)
 
         self.expected_X = self.X.data
-        means = ma.mean(self.X, axis=0)
+        μ = ma.mean(self.X, axis=0)
         
         # if there are no observations in any column of X then use 0.0
-        means[np.isnan(means)] = 0
+        μ[np.isnan(μ)] = 0
 
         # replace all missing values with the mean of the collumn
-        self.expected_X[self.X.mask] = means[np.where(self.X.mask)[1]]
+        self.expected_X[self.X.mask] = μ[np.where(self.X.mask)[1]]
 
         # determine the lls for all of the values
         for n in range(self.N):
             for d in range(self.D):
-                self.lls[n, d] = np.log(stats.norm.pdf(self.expected_X[n, d], loc=means[d], scale=1e-1)) # adding a little leeway here
+                self.lls[n, d] = np.log(stats.norm.pdf(self.expected_X[n, d], loc=μ[d], scale=1e-1)) # adding a little leeway here
 
     def _sample(self, num_samples):
         if self.verbose: 
