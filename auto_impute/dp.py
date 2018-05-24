@@ -10,12 +10,12 @@ from scipy import stats
 
 class DP(Model):
 
-    def __init__(self, data, verbose=None, α=0.5, G=None):
-        Model.__init__(self, data, verbose=verbose, normalise=False)
+    def __init__(self, data, verbose=None, normalise=True, α=0.5, G=None):
+        Model.__init__(self, data, verbose=verbose, normalise=normalise)
 
         self.α = α
         if G is None:
-            self.G = stats.norm(loc=0, scale=10)
+            self.G = stats.norm(loc=0, scale=1)
 
         # for each column, create a map from unique value to number of occurances
         self.col_lookups = [
@@ -23,7 +23,7 @@ class DP(Model):
                 unique_val: count 
                 for unique_val, count in zip(*np.unique(self.X.data[:,d][~self.X.mask[:,d]], return_counts=True))
             }
-            for d in range(self.num_features)
+            for d in range(self.D)
         ]
 
         self._calc_ML_est()
@@ -35,7 +35,7 @@ class DP(Model):
 
         # complete each column going from top to bottom
         self.expected_X = self.X.data
-        for d in range(self.num_features):
+        for d in range(self.D):
             for n in range(self.N):
                 # skip this iter if we don't need to impute a value
                 if not self.X.mask[n, d]:
@@ -68,30 +68,24 @@ class DP(Model):
 
     def _calc_ll(self):
         # copy so that we don't modify the original data
-        col_lookups_ = self.col_lookups
-        lls = []
-
-        for d in range(self.num_features):
+        col_lookups_ = [{ } for d in range(self.D)]
+        
+        for d in range(self.D):
             for n in range(self.N):
-                # skip this iter if we don't need to impute a value
-                if not self.X.mask[n, d]:
-                    continue
-                
-                x = self.X.data[n, d]                
+                x = self.X.data[n, d]
 
                 N = np.sum(list(col_lookups_[d].values()))
-                p_x = col_lookups_[d][x]/(N + self.α) + self.α/(N + self.α)*self.G.pdf(x)
-                lls.append(p_x)
+                p_x = 0
+                if x in col_lookups_[d]:
+                    p_x += col_lookups_[d][x]/(N + self.α)  
+                p_x += self.α/(N + self.α)*self.G.pdf(x)
+                self.lls[n, d] = np.log(p_x)
 
                 # update col_lookups_
                 if x in col_lookups_[d]:
                     col_lookups_[d][x] += 1
                 else:
                     col_lookups_[d][x] = 1
-
-        self.lls = lls
-        self.ll = np.mean(lls)
-
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
@@ -101,7 +95,7 @@ class DP(Model):
             col_lookups_ = self.col_lookups
 
             # complete each column going from top to bottom
-            for d in range(self.num_features):
+            for d in range(self.D):
                 for n in range(self.N):
                     # skip this iter if we don't need to impute a value
                     if not self.X.mask[n, d]:
