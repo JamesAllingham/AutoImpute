@@ -1,9 +1,8 @@
 # James Allingham
 # April 2018
-# test_SingleGaussianEM.py
-# Tests for the single Gaussian EM module
+# test_sg.py
+# Tests for the single Gaussian fitted with EM
 
-import unittest
 import sys
 import numpy as np
 
