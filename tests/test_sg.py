@@ -20,86 +20,136 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
         model = SingleGaussian(self.data, verbose=False)
         model.fit()
 
-        imputed_X = model.impute()
+        imputed_X = model.ml_imputation()
         rmse = np.sqrt(np.mean(np.power(self.data - imputed_X,2)))
 
         self.assertAlmostEqual(rmse, 0.0)
 
-class NoMissingValuesInitialLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+class NoMissingValuesCompleteInitialLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+
+    def runTest(self):
+        model = SingleGaussian(self.data, verbose=False, normalise=False, independent_vars=True)
+
+        ll = model.log_likelihood(return_mean=True, complete=True)
+
+        self.assertAlmostEqual(ll, -3.179507)
+
+class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+
+    def runTest(self):
+        model = SingleGaussian(self.data, verbose=False, normalise=False)
+
+        ll1 = model.log_likelihood(return_mean=True, complete=True)
+        model.fit()
+        ll2 = model.log_likelihood(return_mean=True, complete=True)
+
+        self.assertAlmostEqual(ll1, ll2)
+
+class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+
+    def runTest(self):
+        model = SingleGaussian(self.data, verbose=False, normalise=False)
+
+        ll = model.log_likelihood(return_mean=True, complete=False)
+
+        self.assertTrue(np.isnan(ll))
+
+class AllMissingValuesMLEResultTestCase(testing_utils.AllMissingBaseTestCase):
+
+    def runTest(self):
+        model = SingleGaussian(self.data, verbose=False, normalise=False)
+
+        model.fit()
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,3)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
+
+class OneValueMLEResultTestCase(testing_utils.OneValueBaseTestCase):
 
     def runTest(self):
         model = SingleGaussian(self.data, verbose=False)
 
-        ll = model.log_likelihood()
-
-        self.assertTrue(np.isnan(ll)) # def LL(sig, mu, k, x): return -0.5*(np.log(np.linalg.det(sig)) + (x - mu).T @ np.linalg.inv(sig) @ (x - mu) + k*np.log(2*np.pi) )
-
-class BostonMCAR10LLTestCase(testing_utils.BostonMCAR10BaseTestCase):
-
-    def runTest(self):        
-        model = SingleGaussian(self.data, verbose=False)
         model.fit()
+        imputed_X = model.ml_imputation()
 
-        ll = model.log_likelihood()
+        self.assertTrue(np.all(imputed_X == np.array([1, 2, 3]*3).reshape(3,3)))
 
-        self.assertAlmostEqual(ll, -1.3819994419383168)
-
-class BostonMCAR20LLTestCase(testing_utils.BostonMCAR20BaseTestCase):
+class TwoValueMLEResultTestCase(testing_utils.TwoValuesBaseTestCase):
 
     def runTest(self):
         model = SingleGaussian(self.data, verbose=False)
+
         model.fit()
+        imputed_X = model.ml_imputation()
 
-        ll = model.log_likelihood()
+        self.assertTrue(np.all(imputed_X == np.array([1, 3, 5, 6, 4, 2, 3.5, 3.5, 3.5]).reshape(3,3)))
 
-        self.assertAlmostEqual(ll, -1.916096390907473)
-
-class BostonMCAR30LLTestCase(testing_utils.BostonMCAR30BaseTestCase):
+class TwoSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False)
+        model = SingleGaussian(self.data, verbose=False, normalise=True)
+
         model.fit()
+        samples = model.sample(2)
+        rmse = np.sqrt(np.mean(np.power(samples[0, :, :] - samples[1, :, :],2)))
+        self.assertTrue(rmse > 0)
 
-        ll = model.log_likelihood()
-
-        self.assertAlmostEqual(ll, -2.3689620433382492)
-
-class IrisMCAR10LLTestCase(testing_utils.IrisMCAR10BaseTestCase):
+class OneSamplesDifferentTestCase(testing_utils.OneValueBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False)
+        model = SingleGaussian(self.data, verbose=False, normalise=True)
+
         model.fit()
+        samples = model.sample(2)
+        rmse = np.sqrt(np.mean(np.power(samples[0, :, :] - samples[1, :, :],2)))
+        self.assertTrue(rmse == 0)
 
-        ll = model.log_likelihood()
-
-        self.assertAlmostEqual(ll, -0.9648759753923146)
-
-class IrisMCAR20LLTestCase(testing_utils.IrisMCAR20BaseTestCase):
+class IndependentVsDependentLLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False)
-        model.fit()
 
-        ll = model.log_likelihood()
+        model_ind = SingleGaussian(self.data, verbose=False, independent_vars=True)
+        model_ind.fit()
+        ll_ind = model_ind.log_likelihood(complete=False, return_mean=True)
 
-        self.assertAlmostEqual(ll, -0.9668574559009642)
+        model_dep = SingleGaussian(self.data, verbose=False, independent_vars=False)
+        model_dep.fit()
+        ll_dep = model_dep.log_likelihood(complete=False, return_mean=True)
 
-class IrisMCAR40LLTestCase(testing_utils.IrisMCAR40BaseTestCase):
+        self.assertGreater(ll_dep, ll_ind)
 
-    def runTest(self):
-        model = SingleGaussian(self.data, verbose=False)
-        model.fit()
-
-        ll = model.log_likelihood()
-
-        self.assertAlmostEqual(ll, -0.9725021074844706)
-
-class IrisMCAR50LLTestCase(testing_utils.IrisMCAR50BaseTestCase):
+class OneColumnPredTestCase(testing_utils.OneColumnBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False)
+
+        model = SingleGaussian(self.data, verbose=False, independent_vars=False)
         model.fit()
 
-        ll = model.log_likelihood()
+        imputed_X = model.ml_imputation()
 
-        self.assertAlmostEqual(ll, -0.6286605534111728)
+        self.assertTrue(np.all(imputed_X == np.array([[1], [2], [1.5]])))
+
+class OneColumnSampleTestCase(testing_utils.OneColumnBaseTestCase):
+
+    def runTest(self):
+
+        model = SingleGaussian(self.data, verbose=False, independent_vars=False)
+        model.fit()
+
+        samples = model.sample(2)
+        rmse = np.sqrt(np.mean(np.power(samples[0, :, :] - samples[1, :, :],2)))
+        self.assertTrue(rmse > 0)
+
+class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
+
+    def runTest(self):
+
+        model = SingleGaussian(self.data, verbose=False, independent_vars=False)
+        model.fit()
+
+        model_dep = SingleGaussian(self.data, verbose=False, independent_vars=False)
+        model_dep.fit()
+        ll_dep = model_dep.log_likelihood(complete=False, return_mean=True)
+
+        self.assertEqual(ll_dep, model.log_likelihood(complete=False, return_mean=True))
