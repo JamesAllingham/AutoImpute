@@ -68,7 +68,25 @@ class TwoValuesBaseTestCase(unittest.TestCase):
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
 
+class OneColumnBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        data = np.array([[1], [2], [np.nan]])
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
 # Temporary test cases - not permanent features, just here to make sure I don't break things while refactoring code
+class BostonCompleteBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(42)
+        try:
+            data = np.genfromtxt("../data/boston-0-MCAR.csv", delimiter=",")
+        except FileNotFoundError as _:
+            data = np.genfromtxt("data/boston-0-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
 class BostonMCAR10BaseTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -120,6 +138,17 @@ class BostonMCAR50BaseTestCase(unittest.TestCase):
             data = np.genfromtxt("../data/boston-50-MCAR.csv", delimiter=",")
         except FileNotFoundError as _:
             data = np.genfromtxt("data/boston-50-MCAR.csv", delimiter=",")
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
+class IrisCompleteBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(42)
+        try:
+            data = np.genfromtxt("../data/iris-0-MCAR.csv", delimiter=",")
+        except FileNotFoundError as _:
+            data = np.genfromtxt("data/iris-0-MCAR.csv", delimiter=",")
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
 
