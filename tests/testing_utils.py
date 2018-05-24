@@ -75,6 +75,23 @@ class OneColumnBaseTestCase(unittest.TestCase):
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
 
+class EandPiBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        data = np.array(
+            [[2.71828, 3.14159, 3.14159, 3.14159, np.nan],
+             [2.71828, 2.71828, 2.71828, np.nan, np.nan],
+             [2.71828, 2.71828, 3.14159, np.nan, np.nan],
+             [2.71828, 2.71828, 2.71828, np.nan, np.nan],
+             [2.71828, 2.71828, 2.71828, np.nan, np.nan],
+             [2.71828, 3.14159, 3.14159, np.nan, np.nan],
+             [2.71828, 2.71828, 3.14159, np.nan, np.nan],
+             [np.nan, np.nan, np.nan, np.nan, np.nan]
+             ]
+        )
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
 # Temporary test cases - not permanent features, just here to make sure I don't break things while refactoring code
 class BostonCompleteBaseTestCase(unittest.TestCase):
 
