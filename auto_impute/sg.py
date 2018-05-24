@@ -4,7 +4,7 @@
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
 
 from model import Model
-from utilities import regularise_Σ, get_locs_and_coords
+from utilities import regularise_Σ, print_err
 
 import numpy as np
 import numpy.ma as ma
@@ -13,87 +13,100 @@ from scipy import linalg
 
 class SingleGaussian(Model):
 
-    def __init__(self, data, verbose=None):
-        Model.__init__(self, data, verbose=verbose)
+    def __init__(self, data, verbose=None, independent_vars=True, normalise=True):
+        Model.__init__(self, data, verbose=verbose, normalise=normalise)
         self.μ = ma.mean(self.X, axis=0).data
-        self.Σ = regularise_Σ(ma.cov(self.X, rowvar=False).data + np.eye(self.num_features))
+
+        if independent_vars:
+            self.var_func = lambda x: np.diag(ma.var(x, axis=0).data)
+        else:
+            self.var_func = lambda x: ma.cov(x, rowvar=False).data
+
+        self.Σ = self.var_func(self.X)
+        if self.Σ.shape == ():
+            self.Σ = np.array([[self.Σ]])
+
+        # if there are no observations in any column of X then use 0.0
+        self.μ[np.isnan(self.μ)] = 0
+        self.Σ[np.isnan(self.Σ)] = 1
+
+        # make sure the the cov matrix is pos def
+        self.Σ = regularise_Σ(self.Σ)
+
 
         self._calc_ML_est()
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
         # fit the model to the data
-        best_ll = self.ll
+        best_lls = self.lls
 
-        if self.verbose: print("Fitting model:")
+        if self.verbose: print_err("Fitting single gaussian using EM:")
         for i in range(max_iters):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
 
-            # now re-estimate μ and Σ (M-step)
+            # re-estimate the paramters μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
-            self.Σ = np.cov(self.expected_X, rowvar=False)
-
-            # regularisation term ensuring that the cov matrix is always pos def
-            self.Σ += np.eye(self.num_features)*1e-3
+            self.Σ = self.var_func(self.expected_X)
+            if self.Σ.shape == ():
+                self.Σ = np.array([[self.Σ]])
+            self.Σ = regularise_Σ(self.Σ)
             
             # using the current parameters, estimate the values of the missing data (E-step)
-            # impute by taking the mean of the conditional distro
             self._calc_ML_est()
 
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
-            if self.ll - best_ll < ϵ:
+            if np.sum(self.lls[self.X.mask]) - np.sum(best_lls[self.X.mask]) < ϵ:
                 self.μ, self.Σ, self.expected_X = old_μ, old_Σ, old_expected_X
-                self.ll = best_ll
+                self.lls = best_lls
                 break
             
-            best_ll = self.ll
+            best_lls = self.lls
 
-            if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
+            if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.sum(self.lls[self.X.mask])))
             
     def _calc_ML_est(self):
         expected_X = self.X.data.copy()
+
+        expected_X[self.X.mask] = np.stack([self.μ]*self.N, axis=0)[self.X.mask]
+        
+        # take into account the conditional dependence
         for n in range(self.N):
             x_row = expected_X[n, :]
             mask_row = self.X.mask[n, :]
-            # if there are no missing values then go to next iter
-            if np.all(~mask_row): continue
 
-            o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
+            # if there are no missing values or only missing then go to next iter
+            if np.all(~mask_row) or np.all(mask_row): continue
 
             # calculate the mean of m|o
-            μmo = self.μ[m_locs] 
-            if o_locs.size: # if there are any observations
-                # get the subsets of the covaraince matrices
-                Σoo = self.Σ[oo_coords].reshape(len(o_locs), len(o_locs))
-                Σmo = self.Σ[mo_coords].reshape(len(m_locs), len(o_locs))
-                μmo += Σmo @ linalg.inv(Σoo) @ (x_row[o_locs] - self.μ[o_locs])
+            # get the subsets of the covaraince matrice
+            Σoo = self.Σ[np.ix_(~mask_row, ~mask_row)]
+            Σmo = self.Σ[np.ix_(mask_row, ~mask_row)]
+            if Σoo.shape != ():
+                μmo = Σmo @ linalg.inv(Σoo) @ (x_row[~mask_row] - self.μ[~mask_row])
 
-            expected_X[n, :][m_locs] = μmo
+                # μmo will be 0 if the rows are indepenent
+                expected_X[n, mask_row] += μmo
+
         self.expected_X = expected_X
 
     def _calc_ll(self):
-        lls = []
-        for n in range(self.N):
-            x_row = self.X[n, :]
-            mask_row = self.X.mask[n, :]
-            # if there are no missing values then go to next iter
-            if np.all(~mask_row): continue
+        Λ = linalg.inv(self.Σ)
 
-            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
+        for d in range(self.D):
+            mask_row = np.array([False]*self.D)
+            mask_row[d] = True     
+            # σ2 = self.Σ[np.ix_(mask_row, mask_row)]
+            σ2 = linalg.inv(Λ[np.ix_(mask_row, mask_row)])
+            Λtmp = σ2 @ Λ[np.ix_(mask_row, ~mask_row)] 
+            
+            for n in range(self.N):
+                x_row = self.expected_X[n, :]
+                μ = self.μ[mask_row] - Λtmp @ (x_row[~mask_row] - self.μ[~mask_row])
 
-            μmo = self.μ[m_locs]
-
-            if o_locs.size:
-                Σoo = self.Σ[oo_coords].reshape(len(o_locs), len(o_locs))
-                Σmo = self.Σ[mo_coords].reshape(len(m_locs), len(o_locs))
-                diff = x_row[o_locs] - self.μ[o_locs]
-                μmo += Σmo @ linalg.inv(Σoo) @ diff
-
-            Σmm = self.Σ[mm_coords].reshape(len(m_locs), len(m_locs))
-
-            lls.append(np.log(stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm)))
-        self.ll = np.mean(lls)
+                # calculate ll
+                self.lls[n, d] = np.log(stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2))
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data.copy()]*num_samples, axis=0)
@@ -103,21 +116,22 @@ class SingleGaussian(Model):
             x_row = self.X[n, :]
             mask_row = self.X.mask[n, :]
             # if there are no missing values then go to next iter
-            if np.all(~mask_row): continue
+            if np.all(~mask_row): continue            
 
-            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
+            # the mean and var of the missing values
+            μmo = self.μ[mask_row]
+            Σmm = linalg.inv(linalg.inv(self.Σ)[np.ix_(mask_row, mask_row)])
+
+            if not np.all(mask_row):
+                # update the mean and covariance based on the conditional dependence between variables
+                Σoo = self.Σ[np.ix_(~mask_row, ~mask_row)]
+                Σmo = self.Σ[np.ix_(mask_row, ~mask_row)]
+                diff = x_row[~mask_row] - self.μ[~mask_row]
+                Σcond = Σmo @ linalg.inv(Σoo)
+
+                μmo += Σcond @ diff # won't change if the variables are independent
 
             for i in range(num_samples):
-                μmo = self.μ[m_locs]
-
-                if o_locs.size:
-                    Σoo = self.Σ[oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σ[mo_coords].reshape(len(m_locs), len(o_locs))
-                    diff = x_row[o_locs] - self.μ[o_locs]
-                    μmo += Σmo @ linalg.inv(Σoo) @ diff
-
-                Σmm = self.Σ[mm_coords].reshape(len(m_locs), len(m_locs))
-
-                sampled_Xs[i, n, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
+                sampled_Xs[i, n, mask_row] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1, random_state=i)
 
         return sampled_Xs
