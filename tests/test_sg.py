@@ -84,7 +84,7 @@ class TwoValueMLEResultTestCase(testing_utils.TwoValuesBaseTestCase):
 
         self.assertTrue(np.all(imputed_X == np.array([1, 3, 5, 6, 4, 2, 3.5, 3.5, 3.5]).reshape(3,3)))
 
-class TwoSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
+class TwoValuesSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
 
     def runTest(self):
         model = SingleGaussian(self.data, verbose=False, normalise=True)
@@ -93,16 +93,6 @@ class TwoSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
         samples = model.sample(2)
         rmse = np.sqrt(np.mean(np.power(samples[0, :, :] - samples[1, :, :],2)))
         self.assertTrue(rmse > 0)
-
-class OneSamplesDifferentTestCase(testing_utils.OneValueBaseTestCase):
-
-    def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=True)
-
-        model.fit()
-        samples = model.sample(2)
-        rmse = np.sqrt(np.mean(np.power(samples[0, :, :] - samples[1, :, :],2)))
-        self.assertTrue(rmse == 0)
 
 class IndependentVsDependentLLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
