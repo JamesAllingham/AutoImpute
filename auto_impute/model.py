@@ -19,9 +19,10 @@ class Model(object):
         self.D = data.shape[1]
 
         # normalise the data for numerical stability        
-        self.mean = ma.mean(data, axis=0)
-        self.std = ma.std(data, axis=0)
-        if not normalise or np.any(np.isnan(self.std)) or np.any(np.isnan(self.mean)):
+        self.mean = ma.mean(data, axis=0).data
+        self.std = ma.std(data, axis=0).data
+        self.std[self.std == 0] = 1
+        if not normalise:
             self.mean = 0
             self.std = 1
 
@@ -47,7 +48,6 @@ class Model(object):
     def ml_imputation(self):
         """Returns the imputed data
         """
-        # if all of the input was missing then std and mean will both be nans
         return self.expected_X*self.std + self.mean
 
     def log_likelihood(self, complete=False, return_individual=False, return_mean=False):
