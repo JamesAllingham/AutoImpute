@@ -26,7 +26,7 @@ class SingleGaussian(Model):
         if self.Σ.shape == ():
             self.Σ = np.array([[self.Σ]])
 
-        # if there are no observations in any column of X then use 0.0
+        # if there are no observations in any column of X then use mean 0.0, var 1
         self.μ[np.isnan(self.μ)] = 0
         self.Σ[np.isnan(self.Σ)] = 1
 
@@ -64,7 +64,7 @@ class SingleGaussian(Model):
             
             best_lls = self.lls
 
-            if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.sum(self.lls[self.X.mask])))
+            if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.mean(self.lls[self.X.mask])))
             
     def _calc_ML_est(self):
         expected_X = self.X.data.copy()
@@ -97,7 +97,6 @@ class SingleGaussian(Model):
         for d in range(self.D):
             mask_row = np.array([False]*self.D)
             mask_row[d] = True     
-            # σ2 = self.Σ[np.ix_(mask_row, mask_row)]
             σ2 = linalg.inv(Λ[np.ix_(mask_row, mask_row)])
             Λtmp = σ2 @ Λ[np.ix_(mask_row, ~mask_row)] 
             
@@ -122,7 +121,7 @@ class SingleGaussian(Model):
             μmo = self.μ[mask_row]
             Σmm = linalg.inv(linalg.inv(self.Σ)[np.ix_(mask_row, mask_row)])
 
-            if not np.all(mask_row):
+            if np.any(~mask_row):
                 # update the mean and covariance based on the conditional dependence between variables
                 Σoo = self.Σ[np.ix_(~mask_row, ~mask_row)]
                 Σmo = self.Σ[np.ix_(mask_row, ~mask_row)]
