@@ -8,7 +8,8 @@
 # Retrieved from http://papers.nips.cc/paper/767-supervised-learning-from-incomplete-data-via-an-em-approach.pdf
 
 from model import Model
-from utilities import get_locs_and_coords, regularise_Σ
+from mi import MeanImpute
+from utilities import regularise_Σ, print_err
 
 import numpy as np
 import numpy.ma as ma
@@ -18,11 +19,23 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_components, verbose=None, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
-        Model.__init__(self, data, verbose=verbose)
+    def __init__(self, data, num_components, verbose=None, independent_vars=True, normalise=True, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+        Model.__init__(self, data, verbose=verbose, normalise=normalise)
         self.num_components = num_components
+        self.independent_vars = independent_vars
 
         self.map_est = map_est
+
+        if independent_vars:
+            self.var_func = lambda x: np.diag(ma.var(x, axis=0).data)
+        else:
+            self.var_func = lambda x: ma.cov(x, rowvar=False).data
+
+        def min_2d(x):
+            if x.shape == ():
+               return np.array([[x]])
+            else:
+                return x
 
         # hyper-parameters
         if α0 is not None:
@@ -33,7 +46,7 @@ class GMM(Model):
         if m0 is not None:
             self.m0 = m0
         else:
-            self.m0 = np.zeros(shape=(self.num_features, ))
+            self.m0 = np.zeros(shape=(self.D, ))
         
         if β0 is not None:
             self.β0 = β0
@@ -43,23 +56,24 @@ class GMM(Model):
         if W0 is not None:
             self.W0 = W0
         else:
-            self.W0 = np.eye(self.num_features)
+            self.W0 = np.eye(self.D)
         
         if ν0 is not None:
             self.ν0 = ν0
         else:
-            self.ν0 = self.num_features
+            self.ν0 = self.D
 
         # use k-means to initialise params
         rs = np.zeros(shape=(self.N, self.num_components))
-        mean_imputed_X = self.X.data.copy()
-        mean_imputed_X[self.X.mask] = ma.mean(self.X, axis=0)[np.where(self.X.mask)[1]]
+        mi_model = MeanImpute(self.X, verbose=None)
+        mean_imputed_X = mi_model.ml_imputation()
         kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
         rs[np.arange(self.N), kmeans.labels_] = 1
         self.πs = np.mean(rs, axis=0)
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
-        # self.Σs = np.stack([np.cov(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], rowvar=False) for k in range(self.num_components)], axis=0)
-        self.Σs = np.stack([regularise_Σ(np.diag(np.var(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0))) for k in range(self.num_components)], axis=0)
+        self.Σs = np.stack([min_2d(self.var_func(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :])) for k in range(self.num_components)], axis=0)
+        for k in range(self.num_components):
+            self.Σs[k] = regularise_Σ(self.Σs[k])
 
         self.rs = np.random.rand(self.N, self.num_components)
         self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
@@ -68,10 +82,10 @@ class GMM(Model):
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
-        best_ll = self.ll
-        if self.verbose: print("Fitting model:")
+        best_lls = self.lls
+        if self.verbose: print_err("Fitting GMM using EM algorithm (%s):" % ("MLE" if not self.map_est else "MAP estimate",))
         for i in range(max_iters):
-            old_μs, old_Σs, old_πs , old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.πs.copy(), self.expected_X.copy(), self.rs.copy()
+            old_μs, old_Σs, old_πs, old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.πs.copy(), self.expected_X.copy(), self.rs.copy()
 
             # E-step
             self._calc_rs()
@@ -81,13 +95,13 @@ class GMM(Model):
             self._calc_ML_est()
             # if the log likelihood stops improving then stop iterating
             self._calc_ll()
-            if self.ll - best_ll < ϵ:
+            if np.sum(self.lls[self.X.mask]) - np.sum(best_lls[self.X.mask]) < ϵ:
                 self.μs, self.Σs, self.πs, self.expected_X, self.rs = old_μs, old_Σs, old_πs, old_expected_X, old_rs
-                self.ll = best_ll
+                self.lls = best_lls
                 break
             
-            best_ll = self.ll
-            if self.verbose: print("Iter: %s\t\tLL: %f" % (i, self.ll))
+            best_lls = self.lls
+            if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.mean(self.lls[self.X.mask])))
 
     # E-step
     def _calc_rs(self):
@@ -95,15 +109,13 @@ class GMM(Model):
         for n in range(self.N):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
-            
-            o_locs, _, oo_coords, _, _, _ = get_locs_and_coords(mask_row)
 
-            x = x_row[o_locs]
+            x = x_row[~mask_row]
             sz = len(x)
             if sz:
                 for k in range(self.num_components):
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(sz, sz)
-                    μo = self.μs[k, o_locs]
+                    Σoo = self.Σs[k][np.ix_(~mask_row, ~mask_row)]
+                    μo = self.μs[k, ~mask_row]
 
                     rs[n, k] = self.πs[k]*stats.multivariate_normal.pdf(x, mean=μo, cov=Σoo, allow_singular=True)
                     
@@ -126,19 +138,19 @@ class GMM(Model):
             X = self.X.data
             μ = np.stack([self.μs[k]]*self.N, axis=0)
             X[self.X.mask] = μ[self.X.mask]             
+            
+            # take conditional dependence into account
             for n in range(self.N):
                 x_row = self.X[n, :].data
                 mask_row = self.X[n, :].mask
 
-                if np.all(~mask_row): continue
-
-                o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
-
-                if o_locs.size:
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
-                    diff = x_row[o_locs] - self.μs[k, o_locs]
-                    X[n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
+                # if there are no missing values or only missing then go to next iter
+                if np.all(~mask_row) or np.all(mask_row): continue
+                
+                Σoo = self.Σs[k][np.ix_(~mask_row, ~mask_row)]
+                Σmo = self.Σs[k][np.ix_(mask_row, ~mask_row)]
+                diff = x_row[~mask_row] - self.μs[k, ~mask_row]
+                X[n, mask_row] += Σmo @ linalg.inv(Σoo) @ diff
 
             # now recompute μs
             p = self.rs[:, k]
@@ -146,37 +158,37 @@ class GMM(Model):
 
             # and now Σs
             # calc C
-            C = np.zeros(shape=(self.num_features, self.num_features))
+            C = np.zeros(shape=(self.D, self.D))
             for n in range(self.N):
                 mask_row = self.X[n, :].mask
 
                 if np.all(~mask_row): continue
 
-                o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
-
-                Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
+                Σmm = self.Σs[k][ np.ix_(mask_row, mask_row)]
 
                 tmp = Σmm
-                if o_locs.size:
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs)) 
+                if np.any(~mask_row):
+                    Σoo = self.Σs[k][np.ix_(~mask_row, ~mask_row)]
+                    Σmo = self.Σs[k][np.ix_(mask_row, ~mask_row)] 
                     tmp -= Σmo @ linalg.inv(Σoo) @ Σmo.T
 
                 tmp = p[n]/np.sum(p)*tmp
-                C[mm_coords] += tmp.reshape(len(m_locs)**2)
+                C[np.ix_(mask_row, mask_row)] += tmp
                 
 
             self.Σs[k] = np.zeros_like(C)
             for n in range(self.N):
                 x_row = self.X[n, :].data
                 diff = x_row - self.μs[k]
-                # self.Σs[k] += np.outer(diff, diff.T)*p[n]
-                self.Σs[k] += np.diag(diff * diff)*p[n]
+                if self.independent_vars:
+                    self.Σs[k] += np.diag(diff * diff)*p[n]
+                else:
+                    self.Σs[k] += np.outer(diff, diff.T)*p[n]
 
             self.Σs[k] /= np.sum(p)
             self.Σs[k] += C
             # regularisation term ensuring that the cov matrix is always pos def
-            # self.Σs[k] = regularise_Σ(self.Σs[k])
+            self.Σs[k] = regularise_Σ(self.Σs[k])
 
             # now if we want a MAP estimate rather than the MLE, we can use these statistics calcualted above to update prior beliefs
             if self.map_est:
@@ -192,13 +204,10 @@ class GMM(Model):
 
                 # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
                 self.μs[k] = m
-                self.Σs[k] = W/(ν + self.num_features + 1)
-                # if k == 0: print(self.Σs[k])
+                self.Σs[k] = W/(ν + self.D + 1)
         
         if self.map_est:
-            # print(self.πs)
             self.πs = (αs - 1)/np.sum(αs - 1)
-            # print(self.πs)
 
     def _calc_ML_est(self):
         self.expected_X = self.X.data.copy()
@@ -207,79 +216,63 @@ class GMM(Model):
             x_row = self.X[n, :].data
             mask_row = self.X[n, :].mask
 
-            if np.all(~mask_row): continue
-
-            o_locs, m_locs, oo_coords, _, mo_coords, _ = get_locs_and_coords(mask_row)
+            if np.all(~mask_row): continue            
 
             k = np.argmax(self.rs[n, :])
 
-            self.expected_X[n, m_locs] = self.μs[k, m_locs]
+            self.expected_X[n, mask_row] = self.μs[k, mask_row]
 
-            if o_locs.size:
-                Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
+            if np.any(~mask_row):
+                Σoo = self.Σs[k][np.ix_(~mask_row, ~mask_row)]
+                Σmo = self.Σs[k][np.ix_(mask_row, ~mask_row)]
                 
-                diff = x_row[o_locs] - self.μs[k, o_locs]
-                self.expected_X[n, m_locs] += Σmo @ linalg.inv(Σoo) @ diff
+                diff = x_row[~mask_row] - self.μs[k, ~mask_row]
+                self.expected_X[n, mask_row] += Σmo @ linalg.inv(Σoo) @ diff
 
     def _calc_ll(self):
-        lls = []
-        for n in range(self.N):
-            x_row = self.X[n, :].data
-            mask_row = self.X[n, :].mask
+        self.lls = np.zeros_like(self.lls)
+        for k in range(self.num_components):
+            Λ = linalg.inv(self.Σs[k])
 
-            if np.all(~mask_row): continue
-
-            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
-
-            prob = 0
-            for k in range(self.num_components):
-                # now the mean and var for the missing data given the seen data
-                μmo = self.μs[k, m_locs]
+            for d in range(self.D):
+                mask_row = np.array([False]*self.D)
+                mask_row[d] = True     
+                σ2 = linalg.inv(Λ[np.ix_(mask_row, mask_row)])
+                Λtmp = σ2 @ Λ[np.ix_(mask_row, ~mask_row)] 
                 
-                if o_locs.size:
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
-                    diff = x_row[o_locs] - self.μs[k,o_locs]
-                    μmo += Σmo @ linalg.inv(Σoo) @ diff
+                for n in range(self.N):
+                    x_row = self.expected_X[n, :]
+                    μ = self.μs[k][mask_row] - Λtmp @ (x_row[~mask_row] - self.μs[k][~mask_row])
 
-                Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
+                    # calculate ll
+                    self.lls[n, d] += self.πs[k]*stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2)
 
-                prob += self.rs[n, k] * stats.multivariate_normal.pdf(self.expected_X[n, m_locs], mean=μmo, cov=Σmm, allow_singular=True)
-
-            lls.append(np.log(prob))
-        self.ll = np.mean(lls)
-
-    def calc_BIC(self):
-        num_parameters = self.μs.size + self.πs.size + self.Σs.size
-        return np.log(self.N)*num_parameters - 2*self.ll*self.N
+        self.lls = np.log(self.lls)
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
-        for n in range(self.N):
-            # figure out the conditional distribution for the missing data given the observed data
-            x_row = self.X[n, :].data
-            mask_row = self.X[n, :].mask
-            # if there are no missing values then go to next iter
-            if np.all(~mask_row): continue
+        for i in range(num_samples):
+            k = np.random.choice(self.num_components, p=self.πs)            
+        
+            for n in range(self.N):
+                x_row = self.X[n, :].data
+                mask_row = self.X[n, :].mask
 
-            # figure out which values are missing
-            o_locs, m_locs, oo_coords, mm_coords, mo_coords, _ = get_locs_and_coords(mask_row)
 
-            for i in range(num_samples):
-                k = np.random.choice(self.num_components, p=self.rs[n, :]) # maybe  self.πs?
-                μmo = self.μs[k, m_locs]
+                # if there are no missing values then go to next iter
+                if np.all(~mask_row): continue
 
-                if o_locs.size:
-                    Σoo = self.Σs[k, :, :][oo_coords].reshape(len(o_locs), len(o_locs))
-                    Σmo = self.Σs[k, :, :][mo_coords].reshape(len(m_locs), len(o_locs))
-                    diff = x_row[o_locs] - self.μs[k,o_locs]
+                μmo = self.μs[k, mask_row]
+                Σmm = linalg.inv(linalg.inv(self.Σs[k])[np.ix_(mask_row, mask_row)])
+
+                if np.any(~mask_row):
+                    Σoo = self.Σs[k][np.ix_(~mask_row, ~mask_row)]
+                    Σmo = self.Σs[k][np.ix_(mask_row, ~mask_row)]
+                    diff = x_row[~mask_row] - self.μs[k, ~mask_row]
                     μmo += Σmo @ linalg.inv(Σoo) @ diff
 
-                Σmm = self.Σs[k, :, :][mm_coords].reshape(len(m_locs), len(m_locs))
-
-                sampled_Xs[i, n, m_locs] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
+                sampled_Xs[i, n, mask_row] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
 
         return sampled_Xs
         
