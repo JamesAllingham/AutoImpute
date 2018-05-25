@@ -10,10 +10,6 @@ import csv_reader
 import mi
 import sg
 import gmm
-import bgmm
-import vigmm
-import cmm
-import mmm
 import dp
 import mixed
 
@@ -33,23 +29,11 @@ def main(args):
         print(out_str)
         print("Percentage missing elements: %s\n" % (np.mean(data.mask),))
 
-    if args.infinite_gmm:
-        model = vigmm.VIGMM(data, args.num_components, verbose=args.verbose)
-        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
-    elif args.bayesian_gmm:
-        model = bgmm.BGMM(data, args.num_components, verbose=args.verbose)
-        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
-    elif args.gaussian_mixture:
+    if args.gaussian_mixture:
         model = gmm.GMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.single_gaussian:
         model = sg.SingleGaussian(data, verbose=args.verbose)
-        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
-    elif args.categorical_mixture:
-        model = cmm.CMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
-        model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
-    elif args.mixed_mixture:
-        model = mmm.MMM(data, args.num_components, verbose=args.verbose, assignments=args.column_assignments)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.dirichlet_process:
         model = dp.DP(data, verbose=args.verbose)
@@ -68,7 +52,7 @@ def main(args):
             else: 
                 np.savetxt("repaired_%s.txt" % s, samples_Xs[s, :, :], delimiter=args.delimiter)
     else:
-        imputed_X =  model.impute()
+        imputed_X =  model.ml_imputation()
         if args.header: 
             np.savetxt("repaired.txt", imputed_X, delimiter=args.delimiter, header=reader.get_column_names)
         else: 
@@ -76,12 +60,10 @@ def main(args):
 
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
-        imputed_X =  model.impute()
+        imputed_X =  model.ml_imputation()
         print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
 
-    print("LL: %s" % model.log_likelihood())
-
-
+    print("LL: %s" % model.log_likelihood(return_mean=True, complete=False))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -121,14 +103,6 @@ if __name__ == "__main__":
     model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
                              action="store_true")
     model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
-                             action="store_true")
-    model_group.add_argument("-bgmm", "--bayesian_gmm", help="impute using a Gaussian mixture model fitted with Variational Bayes",
-                             action="store_true")
-    model_group.add_argument("-vigmm", "--infinite_gmm", help="impute using a infinite Gaussian mixture model fitted with Variational Bayes",
-                             action="store_true")
-    model_group.add_argument("-cmm", "--categorical_mixture", help="impute using a categorical mixture model fitted with EM",
-                             action="store_true")
-    model_group.add_argument("-mmm", "--mixed_mixture", help="impute using a mixed (consisiting of categorical and gaussian components) mixture model fitted with EM",
                              action="store_true")
     model_group.add_argument("-dp", "--dirichlet_process", help="impute using a Dirichlet process",
                             action="store_true")
