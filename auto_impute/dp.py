@@ -7,6 +7,7 @@ from model import Model
 
 import numpy as np
 from scipy import stats
+import copy
 
 class DP(Model):
 
@@ -31,7 +32,7 @@ class DP(Model):
 
     def _calc_ML_est(self):
         # copy so that we don't modify the original data
-        col_lookups_ = self.col_lookups
+        col_lookups_ = copy.deepcopy(self.col_lookups)
 
         # complete each column going from top to bottom
         self.expected_X = self.X.data
@@ -65,6 +66,7 @@ class DP(Model):
                     self.expected_X[n, d] = x
                     # increase the approrpiate counter
                     col_lookups_[d][x] += 1
+                    
 
     def _calc_ll(self):
         # copy so that we don't modify the original data
@@ -92,7 +94,7 @@ class DP(Model):
 
         for i in range(num_samples):
             # copy so that we don't modify the original data
-            col_lookups_ = self.col_lookups
+            col_lookups_ = copy.deepcopy(self.col_lookups)
 
             # complete each column going from top to bottom
             for d in range(self.D):
@@ -108,6 +110,7 @@ class DP(Model):
                     pvals = np.array(list(col_lookups_[d].values()) + [self.α])
                     pvals = pvals/np.sum(pvals)
                     choice = np.argmax(np.random.multinomial(1, pvals))
+                    # if d == self.D - 1: print(choice, pvals.size)
 
                     # if the choice was the new observation
                     if choice == pvals.size - 1:
