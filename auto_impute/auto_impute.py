@@ -5,6 +5,7 @@
 
 import argparse
 import numpy as np
+from sys import stdout
 
 import csv_reader
 import mi
@@ -13,21 +14,27 @@ import gmm
 import dp
 import mixed
 
+from utilities import print_err
+
 def main(args):
     # set random seed
     if args.rand_seed: np.random.seed(args.rand_seed)
+
+    # set formatting
+    np.set_printoptions(formatter={'float': args.format})
 
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header, args.indicator)
 
     data = reader.get_masked_data()
 
     if args.verbose:
-        print("Read %s with %s rows and %s columns." % ((args.file, ) + data.shape))
+        print_err("Read the file %s with %s rows and %s columns." % ((args.file, ) + data.shape))
         out_str = "Number missing elements: "
         for i in range(data.shape[1]):
             out_str += "col %s: %s  " % (i, np.sum(data.mask[:, i]))
-        print(out_str)
-        print("Percentage missing elements: %s\n" % (np.mean(data.mask),))
+        print_err(out_str)
+        print_err("Percentage missing elements: %s\n" % (np.mean(data.mask),))
+        print_err("")
 
     if args.gaussian_mixture:
         model = gmm.GMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
@@ -42,28 +49,47 @@ def main(args):
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
-    print("")
-
-    if args.sample:
-        samples_Xs =  model.sample(args.sample)
-        for s in range(args.sample):
-            if args.header: 
-                np.savetxt("repaired_%s.txt" % s, samples_Xs[s, :, :], delimiter=args.delimiter, header=reader.get_column_names)
-            else: 
-                np.savetxt("repaired_%s.txt" % s, samples_Xs[s, :, :], delimiter=args.delimiter)
-    else:
-        imputed_X =  model.ml_imputation()
-        if args.header: 
-            np.savetxt("repaired.txt", imputed_X, delimiter=args.delimiter, header=reader.get_column_names)
-        else: 
-            np.savetxt("repaired.txt", imputed_X, delimiter=args.delimiter)
-
+    print_err("Avg LL: %s" % model.log_likelihood(return_mean=True, complete=False))
+    print_err("")
     if args.test is not None:
         test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
         imputed_X =  model.ml_imputation()
-        print("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
+        print_err("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
+        print_err("")
 
-    print("LL: %s" % model.log_likelihood(return_mean=True, complete=False))
+    # Write the output to file
+    # if there was no name supplied then write to std out
+    if args.file_name == None:
+        ofile = stdout
+        print_err("Repaired file(s) written to std out.")
+        print_err("")
+    else:
+        ofile = args.file_name
+
+    # either sample the results or get the maximim likelihood imputation
+    if args.sample:
+        result = model.sample(args.sample)
+    else:
+        result = model.ml_imputation()
+
+    # build a key word arguments dict
+    kwargs = {"delimiter": args.delimiter, "fmt":args.format}
+    if args.header:
+        kwargs["header"] = reader.get_column_names
+
+    if args.sample:
+        for s in range(args.sample):
+            tmp_ofile = ofile
+            if type(ofile) == str:
+                tmp_ofile += "." + str(s)
+                print_err("Writing repaired file to %s" % tmp_ofile)
+            else:
+                print("")
+            np.savetxt(tmp_ofile, result[s], **kwargs)
+    else:
+        if type(ofile) == str:
+            print_err("Writing repaired file to %s." % ofile)
+        np.savetxt(ofile, result, **kwargs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -92,6 +118,10 @@ if __name__ == "__main__":
                         type=int, default=100)
     parser.add_argument("-mle", "--ml_estimation", help="use MLE rather than MAP for non-Bayesian models (default: False)",
                         action="store_true")
+    parser.add_argument("-o", "--file_name", help="file name to write repaired files to (default: none, print to std out)",
+                        type=str, default=None)
+    parser.add_argument("-fmt", "--format", help="Format for printing floating point numbers (default: '%.5f')",
+                        type=str, default="%.5f")
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
