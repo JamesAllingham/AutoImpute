@@ -12,7 +12,7 @@ from utilities import print_err
 
 class Model(object):
 
-    def __init__(self, data, verbose=None, normalise=True):
+    def __init__(self, data, verbose=None, normalise=False):
         """Creates the model object and fits the model to the data.
         """
         self.N = data.shape[0]
@@ -50,10 +50,10 @@ class Model(object):
         """
         return self.expected_X*self.std + self.mean
 
-    def log_likelihood(self, complete=False, return_individual=False, return_mean=False):
+    def log_likelihood(self, complete=False, observed=False, return_individual=False, return_mean=False):
         """Calculates the log likelihood of the repaired data given the model paramers.
         """
-        lls = self.lls[self.X.mask] if not complete else self.lls
+        lls = self.lls[~self.X.mask] if observed else self.lls[self.X.mask] if not complete else self.lls
 
         if return_individual:
             return lls
