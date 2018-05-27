@@ -13,7 +13,7 @@ from scipy import linalg
 
 class SingleGaussian(Model):
 
-    def __init__(self, data, verbose=None, independent_vars=True, normalise=True):
+    def __init__(self, data, verbose=None, independent_vars=True, normalise=False):
         Model.__init__(self, data, verbose=verbose, normalise=normalise)
         self.μ = ma.mean(self.X, axis=0).data
 
