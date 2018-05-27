@@ -27,16 +27,16 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
 class NoMissingValuesCompleteInitialLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=False, independent_vars=True)
+        model = SingleGaussian(self.data, verbose=False, independent_vars=True)
 
         ll = model.log_likelihood(return_mean=True, complete=True)
 
-        self.assertAlmostEqual(ll, -3.179507)
+        self.assertAlmostEqual(ll, -3.179506983107214)
 
 class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=False)
+        model = SingleGaussian(self.data, verbose=False)
 
         ll1 = model.log_likelihood(return_mean=True, complete=True)
         model.fit()
@@ -47,7 +47,7 @@ class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTe
 class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=False)
+        model = SingleGaussian(self.data, verbose=False)
 
         ll = model.log_likelihood(return_mean=True, complete=False)
 
@@ -56,7 +56,7 @@ class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase
 class AllMissingValuesMLEResultTestCase(testing_utils.AllMissingBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=False)
+        model = SingleGaussian(self.data, verbose=False)
 
         model.fit()
         imputed_X = model.ml_imputation()
@@ -87,7 +87,7 @@ class TwoValueMLEResultTestCase(testing_utils.TwoValuesBaseTestCase):
 class TwoValuesSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
 
     def runTest(self):
-        model = SingleGaussian(self.data, verbose=False, normalise=True)
+        model = SingleGaussian(self.data, verbose=False)
 
         model.fit()
         samples = model.sample(2)
@@ -142,3 +142,15 @@ class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
         ll_dep = model_dep.log_likelihood(complete=False, return_mean=True)
 
         self.assertEqual(ll_dep, model.log_likelihood(complete=False, return_mean=True))
+
+class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
+
+    def runTest(self):
+
+        model = SingleGaussian(self.data, verbose=False, independent_vars=False)
+        
+        model.fit()
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,1)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
