@@ -10,6 +10,7 @@ import numpy.ma as ma
 class NoRowsBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.zeros(shape=(0,3), dtype=np.float32)
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
@@ -17,6 +18,7 @@ class NoRowsBaseTestCase(unittest.TestCase):
 class NoColsBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.zeros(shape=(3,0), dtype=np.float32)
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
@@ -24,6 +26,7 @@ class NoColsBaseTestCase(unittest.TestCase):
 class NoMissingValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array([[   1,-2.5,  0],
                          [  12,   5,6.5],
                          [-7.5,  10, -9],
@@ -35,6 +38,7 @@ class NoMissingValuesBaseTestCase(unittest.TestCase):
 class AllMissingBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array(
             [[np.nan, np.nan, np.nan],
              [np.nan, np.nan, np.nan],
@@ -47,6 +51,7 @@ class AllMissingBaseTestCase(unittest.TestCase):
 class OneValueBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array(
             [[1     , np.nan, np.nan],
              [np.nan, 2     , np.nan],
@@ -59,6 +64,7 @@ class OneValueBaseTestCase(unittest.TestCase):
 class TwoValuesBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array(
             [[1     , 3     , 5     ],
              [6     , 4     , 2     ],
@@ -71,6 +77,7 @@ class TwoValuesBaseTestCase(unittest.TestCase):
 class OneColumnBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array([[1], [2], [np.nan]])
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
@@ -78,6 +85,7 @@ class OneColumnBaseTestCase(unittest.TestCase):
 class EandPiBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         data = np.array(
             [[2.71828, 3.14159, 3.14159, 3.14159, np.nan],
              [2.71828, 2.71828, 2.71828, np.nan, np.nan],
