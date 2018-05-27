@@ -40,7 +40,7 @@ class EandPiLLTestCase(testing_utils.EandPiBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=None, normalise=False)
+        model = DP(self.data, verbose=False, normalise=False)
 
         lls = model.log_likelihood(complete=True, return_individual=True)
 
@@ -58,6 +58,16 @@ class EandPiLLTestCase(testing_utils.EandPiBaseTestCase):
         )
 
         self.assertTrue(np.all(lls == expected_lls))
+
+class NotAllZerosGivenNoObsTestCase(testing_utils.EandPiBaseTestCase):
+
+    def runTest(self):
+
+        model = DP(self.data, verbose=False, normalise=False)
+
+        result = model._sample(1)[0]
+
+        self.assertFalse(np.all(result[:, 4] == 0))
 
 class SingleColumnSampleTest(testing_utils.OneColumnBaseTestCase):
 
