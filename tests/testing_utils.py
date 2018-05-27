@@ -82,6 +82,14 @@ class OneColumnBaseTestCase(unittest.TestCase):
         mask = np.isnan(data)
         self.data = ma.masked_array(data, mask)
 
+class OneColumnAllMissingBaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(42)
+        data = np.array([[np.nan], [np.nan], [np.nan]])
+        mask = np.isnan(data)
+        self.data = ma.masked_array(data, mask)
+
 class EandPiBaseTestCase(unittest.TestCase):
 
     def setUp(self):
