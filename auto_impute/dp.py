@@ -11,12 +11,14 @@ import copy
 
 class DP(Model):
 
-    def __init__(self, data, verbose=None, normalise=True, α=0.5, G=None):
+    def __init__(self, data, verbose=None, normalise=False, α=1, G=None):
         Model.__init__(self, data, verbose=verbose, normalise=normalise)
 
         self.α = α
         if G is None:
-            self.G = stats.norm(loc=0, scale=1)
+            self.G = stats.norm(loc=0, scale=10000)
+        else:
+            self.G = G
 
         # for each column, create a map from unique value to number of occurances
         self.col_lookups = [
