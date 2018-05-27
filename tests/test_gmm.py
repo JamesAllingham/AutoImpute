@@ -29,7 +29,7 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
 class NoMissingValuesCompleteInitialLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
-        model = GMM(self.data, num_components=1, verbose=False, map_est=False, normalise=False)
+        model = GMM(self.data, num_components=1, verbose=False, map_est=False)
 
         ll = model.log_likelihood(return_mean=True, complete=True)
 
@@ -63,6 +63,29 @@ class AllMissingValuesMLEResultTestCase(testing_utils.AllMissingBaseTestCase):
         model.fit()
         imputed_X = model.ml_imputation()
         rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,3)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
+
+class AllMissingValuesMultipleComponenetsMLEResultTestCase(testing_utils.AllMissingBaseTestCase):
+
+    def runTest(self):
+        model = GMM(self.data, num_components=3, verbose=False, map_est=False)
+
+        model.fit()
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,3)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
+
+class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
+
+    def runTest(self):
+
+        model = GMM(self.data, 1, verbose=False, independent_vars=True, map_est=False)
+        
+        model.fit()
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,1)) - imputed_X,2)))
         
         self.assertAlmostEqual(rmse, 0.0)
 
