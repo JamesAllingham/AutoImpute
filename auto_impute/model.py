@@ -12,21 +12,13 @@ from utilities import print_err
 
 class Model(object):
 
-    def __init__(self, data, verbose=None, normalise=False):
+    def __init__(self, data, verbose=None):
         """Creates the model object and fits the model to the data.
         """
         self.N = data.shape[0]
         self.D = data.shape[1]
 
-        # normalise the data for numerical stability        
-        self.mean = ma.mean(data, axis=0).data
-        self.std = ma.std(data, axis=0).data
-        self.std[self.std == 0] = 1
-        if not normalise:
-            self.mean = 0
-            self.std = 1
-
-        self.X = (data - self.mean)/self.std
+        self.X = data
 
         # check that the data is somewhat reasonable
         if self.N < 1: 
@@ -48,7 +40,7 @@ class Model(object):
     def ml_imputation(self):
         """Returns the imputed data
         """
-        return self.expected_X*self.std + self.mean
+        return self.expected_X
 
     def log_likelihood(self, complete=False, observed=False, return_individual=False, return_mean=False):
         """Calculates the log likelihood of the repaired data given the model paramers.
@@ -66,7 +58,7 @@ class Model(object):
     def sample(self, num_samples):
         """Samples from the density.
         """
-        return self._sample(num_samples)*self.std + self.mean
+        return self._sample(num_samples)
 
     def _sample(self, num_samples):
         raise NotImplementedError

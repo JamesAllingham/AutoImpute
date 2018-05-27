@@ -19,8 +19,8 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_components, verbose=None, independent_vars=True, normalise=False, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
-        Model.__init__(self, data, verbose=verbose, normalise=normalise)
+    def __init__(self, data, num_components, verbose=None, independent_vars=True, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+        Model.__init__(self, data, verbose=verbose)
         self.num_components = num_components
         self.independent_vars = independent_vars
 

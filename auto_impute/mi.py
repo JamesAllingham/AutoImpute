@@ -13,7 +13,7 @@ from scipy import stats
 class MeanImpute(Model):
 
     def __init__(self, data, verbose=None):
-        Model.__init__(self, data, verbose=verbose, normalise=False)
+        Model.__init__(self, data, verbose=verbose)
 
         self.expected_X = self.X.data
         μ = ma.mean(self.X, axis=0)

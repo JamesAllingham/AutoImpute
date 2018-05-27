@@ -11,8 +11,8 @@ import copy
 
 class DP(Model):
 
-    def __init__(self, data, verbose=None, normalise=False, α=1, G=None):
-        Model.__init__(self, data, verbose=verbose, normalise=normalise)
+    def __init__(self, data, verbose=None, α=1, G=None):
+        Model.__init__(self, data, verbose=verbose)
 
         self.α = α
         if G is None:
