@@ -5,6 +5,7 @@
 
 import sys
 import numpy as np
+from scipy import stats
 
 # add both the relative and absolute paths for the code to test
 sys.path.append("../auto_impute/")
@@ -17,7 +18,7 @@ class EandPiResultTestCase(testing_utils.EandPiBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=None)
+        model = DP(self.data, verbose=None, α=0.5, G=stats.norm(loc=0, scale=1))
 
         imputed_X = model.ml_imputation()
 
@@ -40,7 +41,7 @@ class EandPiLLTestCase(testing_utils.EandPiBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=False, normalise=False)
+        model = DP(self.data, verbose=False, α=0.5, G=stats.norm(loc=0, scale=1))
 
         lls = model.log_likelihood(complete=True, return_individual=True)
 
@@ -63,7 +64,7 @@ class NotAllZerosGivenNoObsTestCase(testing_utils.EandPiBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=False, normalise=False)
+        model = DP(self.data, verbose=False)
 
         result = model._sample(1)[0]
 
@@ -73,7 +74,7 @@ class SingleColumnSampleTest(testing_utils.OneColumnBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=False, normalise=False)
+        model = DP(self.data, verbose=False)
 
         sampled_X = model.sample(1)
 
@@ -83,8 +84,19 @@ class SingleColumnMultipleSample(testing_utils.OneColumnBaseTestCase):
 
     def runTest(self):
 
-        model = DP(self.data, verbose=False, normalise=False)
+        model = DP(self.data, verbose=False)
 
         sampled_X = model.sample(100)
 
         self.assertFalse(np.all(sampled_X[:, 2, :] == sampled_X[0,2,0]))
+
+class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
+
+    def runTest(self):
+
+        model = DP(self.data, verbose=False)
+        
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,1)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
