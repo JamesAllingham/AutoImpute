@@ -19,7 +19,7 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_components, verbose=None, independent_vars=True, normalise=True, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+    def __init__(self, data, num_components, verbose=None, independent_vars=True, normalise=False, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
         Model.__init__(self, data, verbose=verbose, normalise=normalise)
         self.num_components = num_components
         self.independent_vars = independent_vars
@@ -27,7 +27,7 @@ class GMM(Model):
         self.map_est = map_est
 
         if independent_vars:
-            self.var_func = lambda x: np.diag(ma.var(x, axis=0).data)
+            self.var_func = lambda x: np.diag(ma.var(x, axis=0))
         else:
             self.var_func = lambda x: ma.cov(x, rowvar=False).data
 
@@ -51,7 +51,7 @@ class GMM(Model):
         if β0 is not None:
             self.β0 = β0
         else:
-            self.β0 = 1e-3
+            self.β0 = 1e-0
 
         if W0 is not None:
             self.W0 = W0
@@ -67,12 +67,18 @@ class GMM(Model):
         rs = np.zeros(shape=(self.N, self.num_components))
         mi_model = MeanImpute(self.X, verbose=None)
         mean_imputed_X = mi_model.ml_imputation()
+        
         kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
         rs[np.arange(self.N), kmeans.labels_] = 1
+        
         self.πs = np.mean(rs, axis=0)
         self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
         self.Σs = np.stack([min_2d(self.var_func(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :])) for k in range(self.num_components)], axis=0)
         for k in range(self.num_components):
+            # handle edge cases wherer no values are assigned to a component
+            self.Σs[k][np.isnan(self.Σs[k])] =  0
+            self.μs[k][np.isnan(self.μs[k])] = 0
+            # handle edge cases where only 1 value us assigned to a component
             self.Σs[k] = regularise_Σ(self.Σs[k])
 
         self.rs = np.random.rand(self.N, self.num_components)
@@ -155,6 +161,7 @@ class GMM(Model):
             # now recompute μs
             p = self.rs[:, k]
             self.μs[k] = (p @ X)/np.sum(p)
+            self.μs[k][np.isnan(self.μs[k])] = 0
 
             # and now Σs
             # calc C
@@ -164,7 +171,7 @@ class GMM(Model):
 
                 if np.all(~mask_row): continue
 
-                Σmm = self.Σs[k][ np.ix_(mask_row, mask_row)]
+                Σmm = self.Σs[k][np.ix_(mask_row, mask_row)]
 
                 tmp = Σmm
                 if np.any(~mask_row):
@@ -187,6 +194,7 @@ class GMM(Model):
 
             self.Σs[k] /= np.sum(p)
             self.Σs[k] += C
+            self.Σs[k][np.isnan(self.Σs[k])] =  0
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σs[k] = regularise_Σ(self.Σs[k])
 
