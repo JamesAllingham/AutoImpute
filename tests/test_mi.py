@@ -79,3 +79,14 @@ class NoColsTestCase(testing_utils.NoColsBaseTestCase):
     def runTest(self):
         with self.assertRaises(SystemExit):
             MeanImpute(self.data, verbose=False)
+
+class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
+
+    def runTest(self):
+
+        model = MeanImpute(self.data, verbose=False)
+
+        imputed_X = model.ml_imputation()
+        rmse = np.sqrt(np.mean(np.power(np.zeros(shape=(3,1)) - imputed_X,2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
