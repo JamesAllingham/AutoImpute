@@ -20,9 +20,6 @@ def main(args):
     # set random seed
     if args.rand_seed: np.random.seed(args.rand_seed)
 
-    # set formatting
-    np.set_printoptions(formatter={'float': args.format})
-
     reader = csv_reader.CSVReader(args.file, args.delimiter, args.header, args.indicator)
 
     data = reader.get_masked_data()
@@ -45,7 +42,7 @@ def main(args):
     elif args.dirichlet_process:
         model = dp.DP(data, verbose=args.verbose)
     elif args.mixed_dp_gmm:
-        model = mixed.Mixed(data, verbose=args.verbose, assignments=args.column_assignments)
+        model = mixed.Mixed(data, num_components=args.num_components, verbose=args.verbose, assignments=args.column_assignments)
     else:
         model = mi.MeanImpute(data, verbose=args.verbose)
 
@@ -57,6 +54,8 @@ def main(args):
         print_err("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
         print_err("")
 
+    # set formatting
+    np.set_printoptions(formatter={'float': args.format})
     # Write the output to file
     # if there was no name supplied then write to std out
     if args.file_name == None:
@@ -111,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("-k", "--num_components", help="number of components for mixture models (default: 10)",
                         type=int, default=10)
     parser.add_argument("-a", "--column_assignments", help="data type assignments for each column either 'r' for real or 'd' for discrete e.g. 'dddrrr' for 3 discrete followed by 3 real (default: all real)",
-                        type=str, default='')
+                        type=str, default=None)
     parser.add_argument("-e", "--epsilon", help="ϵ (model stopping criterion): if LL_new - LL_old < ϵ then stop iterating (default: 1e-1)",
                         type=float, default=1e-1)
     parser.add_argument("-n", "--max_iters", help="maximum number of iterations to fit model (default: 100)",
