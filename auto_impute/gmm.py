@@ -31,12 +31,6 @@ class GMM(Model):
         else:
             self.var_func = lambda x: ma.cov(x, rowvar=False).data
 
-        def min_2d(x):
-            if x.shape == ():
-               return np.array([[x]])
-            else:
-                return x
-
         # hyper-parameters
         if α0 is not None:
             self.α0 = α0
@@ -63,26 +57,26 @@ class GMM(Model):
         else:
             self.ν0 = self.D
 
-        # use k-means to initialise params
-        rs = np.zeros(shape=(self.N, self.num_components))
-        mi_model = MeanImpute(self.X, verbose=None)
-        mean_imputed_X = mi_model.ml_imputation()
-        
-        kmeans = KMeans(n_clusters=self.num_components, random_state=0).fit(mean_imputed_X)
-        rs[np.arange(self.N), kmeans.labels_] = 1
-        
-        self.πs = np.mean(rs, axis=0)
-        self.μs = np.stack([np.mean(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :], axis=0) for k in range(self.num_components)], axis=0)
-        self.Σs = np.stack([min_2d(self.var_func(mean_imputed_X[np.where(kmeans.labels_ == k)[0], :])) for k in range(self.num_components)], axis=0)
-        for k in range(self.num_components):
-            # handle edge cases wherer no values are assigned to a component
-            self.Σs[k][np.isnan(self.Σs[k])] =  0
-            self.μs[k][np.isnan(self.μs[k])] = 0
-            # handle edge cases where only 1 value us assigned to a component
-            self.Σs[k] = regularise_Σ(self.Σs[k])
-
+        # sample from prior to init params
+        # Σs
+        if not independent_vars:
+            self.Σs = np.array([
+                np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=self.W0)) for _ in range(self.num_components)
+            ])
+        else:
+            self.Σs = np.array([
+                np.diag([
+                    stats.invgamma.rvs(a=self.ν0/2, scale=self.W0[d, d]/2) for d in range(self.D)
+                ]) for _ in range(self.num_components)
+            ])
+        # μs
+        self.μs = np.array([
+            np.atleast_1d(stats.multivariate_normal.rvs(mean=self.m0, cov=self.Σs[k]/self.β0)) for k in range(self.num_components) 
+        ])  
+        # πs
         self.rs = np.random.rand(self.N, self.num_components)
         self.rs = self.rs/np.sum(self.rs, axis=1, keepdims=True)
+        self.πs = np.mean(self.rs, axis=0)
 
         self._calc_ML_est()
         self._calc_ll()
@@ -226,7 +220,7 @@ class GMM(Model):
 
             if np.all(~mask_row): continue            
 
-            k = np.argmax(self.rs[n, :])
+            k = np.argmax(self.πs)
 
             self.expected_X[n, mask_row] = self.μs[k, mask_row]
 
@@ -261,7 +255,7 @@ class GMM(Model):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
         for i in range(num_samples):
-            k = np.random.choice(self.num_components, p=self.πs)            
+            k = np.random.choice(self.num_components, p=self.πs)
         
             for n in range(self.N):
                 x_row = self.X[n, :].data
