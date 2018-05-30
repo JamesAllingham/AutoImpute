@@ -38,16 +38,16 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
 
 #         self.assertAlmostEqual(ll, -3.179507)
 
-class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
+# class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
-    def runTest(self):
-        model = GMM(self.data, num_components=1, verbose=False, map_est=False)
+#     def runTest(self):
+#         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
 
-        ll1 = model.log_likelihood(return_mean=True, complete=True)
-        model.fit()
-        ll2 = model.log_likelihood(return_mean=True, complete=True)
-
-        self.assertAlmostEqual(ll1, ll2)
+#         ll1 = model.log_likelihood(return_mean=True, complete=True)
+#         model.fit()
+#         ll2 = model.log_likelihood(return_mean=True, complete=True)
+#         print(ll1, ll2)
+#         self.assertAlmostEqual(ll1, ll2)
 
 class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
