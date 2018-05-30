@@ -27,7 +27,7 @@ class GMM(Model):
         self.map_est = map_est
 
         if independent_vars:
-            self.var_func = lambda x: np.diag(ma.var(x, axis=0))
+            self.var_func = lambda x: np.diag(ma.var(x, axis=0, ddof=1))
         else:
             self.var_func = lambda x: ma.cov(x, rowvar=False).data
 
@@ -82,7 +82,7 @@ class GMM(Model):
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
-        best_lls = self.lls
+        best_lls = self.lls.copy()
         if self.verbose: print_err("Fitting GMM using EM algorithm (%s):" % ("MLE" if not self.map_est else "MAP estimate",))
         for i in range(max_iters):
             old_μs, old_Σs, old_πs, old_expected_X, old_rs = self.μs.copy(), self.Σs.copy(), self.πs.copy(), self.expected_X.copy(), self.rs.copy()
@@ -97,10 +97,10 @@ class GMM(Model):
             self._calc_ll()
             if np.sum(self.lls[self.X.mask]) - np.sum(best_lls[self.X.mask]) < ϵ:
                 self.μs, self.Σs, self.πs, self.expected_X, self.rs = old_μs, old_Σs, old_πs, old_expected_X, old_rs
-                self.lls = best_lls
+                self.lls = best_lls.copy()
                 break
             
-            best_lls = self.lls
+            best_lls = self.lls.copy()
             if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.mean(self.lls[self.X.mask])))
 
     # E-step
@@ -202,7 +202,7 @@ class GMM(Model):
                 β = self.β0 + N_k
                 m = (self.β0*self.m0 + N_k*self.μs[k])/(self.β0 + N_k)
                 ν = self.ν0 + N_k
-                W = self.W0 + self.Σs[k] + self.β0*N_k/(self.β0 + N_k)*np.diag((self.μs[k] - self.m0)**2)
+                W = self.W0 + self.Σs[k] + self.β0*N_k/(self.β0 + N_k)*(np.diag((self.μs[k] - self.m0)**2) if self.independent_vars else np.outer(self.μs[k] - self.m0, self.μs[k] - self.m0))
 
                 # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
                 self.μs[k] = m
