@@ -101,13 +101,16 @@ class TwoValueMAPResultTestCase(testing_utils.TwoValuesBaseTestCase):
         D = self.data.shape[1]
         m0=np.zeros(shape=(D,))
         β0=1
-        W0=np.eye(D)*10000
+        W0=np.eye(D)*1
         ν0=D
-        model = SingleGaussian(self.data, verbose=False, map_est=True, m0=m0, β0=β0, ν0=ν0, W0=W0)
-        model.fit(ϵ=0, max_iters=100)
+        model = SingleGaussian(self.data, verbose=True, map_est=True, m0=m0, β0=β0, ν0=ν0, W0=W0)
+        model.fit(ϵ=0)
         imputed_X = model.ml_imputation()
+        print(imputed_X)
 
-        self.assertTrue(np.all(imputed_X == np.array([1, 3, 5, 6, 4, 2, 2, 2, 2]).reshape(3,3)))
+        rmse = np.sqrt(np.mean(np.power(imputed_X - np.array([1, 3, 5, 6, 4, 2, 7/3, 7/3, 7/3]).reshape(3,3),2)))
+        
+        self.assertAlmostEqual(rmse, 0.0)
 
 class TwoValuesSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
 
