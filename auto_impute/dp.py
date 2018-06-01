@@ -71,7 +71,6 @@ class DP(Model):
                     
 
     def _calc_ll(self):
-        # copy so that we don't modify the original data
         col_lookups_ = [{ } for d in range(self.D)]
         
         for d in range(self.D):
@@ -90,6 +89,29 @@ class DP(Model):
                     col_lookups_[d][x] += 1
                 else:
                     col_lookups_[d][x] = 1
+
+    def evidence(self):
+        col_lookups_ = [{ } for d in range(self.D)]
+        lls = []
+        for d in range(self.D):
+            for n in range(self.N):
+                if self.X.mask[n, d]: continue
+                x = self.X.data[n, d]
+
+                N = np.sum(list(col_lookups_[d].values()))
+                p_x = 0
+                if x in col_lookups_[d]:
+                    p_x += col_lookups_[d][x]/(N + self.α)  
+                p_x += self.α/(N + self.α)*self.G.pdf(x)
+                lls.append(np.log(p_x))
+
+                # update col_lookups_
+                if x in col_lookups_[d]:
+                    col_lookups_[d][x] += 1
+                else:
+                    col_lookups_[d][x] = 1
+
+        return np.exp(np.sum(lls))
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
