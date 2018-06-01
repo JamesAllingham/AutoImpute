@@ -30,9 +30,9 @@ class SingleGaussian(Model):
             self.β0 = 1e-0
 
         if W0 is not None:
-            self.W0 = W0
+            self.Λ0 = linalg.inv(W0)
         else:
-            self.W0 = np.eye(self.D)
+            self.Λ0 = np.eye(self.D)
         
         if ν0 is not None:
             self.ν0 = ν0
@@ -43,7 +43,7 @@ class SingleGaussian(Model):
         self.β = None
         self.m = None
         self.ν = None
-        self.W = None
+        self.Λ = None
 
         if independent_vars:
             self.var_func = lambda x: np.diag(ma.var(x, axis=0, ddof=1).data)
@@ -53,15 +53,15 @@ class SingleGaussian(Model):
         # sample from prior to init params
         # Σ
         if not independent_vars:
-            self.Σ = np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=self.W0))
+            self.Σ = np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=linalg.inv(self.Λ0)))
         else:
             self.Σ = np.diag([
-                    stats.invgamma.rvs(a=self.ν0/2, scale=self.W0[d, d]/2) for d in range(self.D)
+                    stats.invgamma.rvs(a=self.ν0/2, scale=linalg.inv(self.Λ0)[d, d]/2) for d in range(self.D)
                 ])
         # μ
         self.μ = np.atleast_1d(stats.multivariate_normal.rvs(mean=self.m0, cov=self.Σ/self.β0))
 
-        self._calc_ML_est()
+        self._calc_ML_est() 
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
@@ -69,27 +69,28 @@ class SingleGaussian(Model):
         best_lls = self.lls.copy()
         if self.verbose: print_err("Fitting single gaussian using EM:")
         if self.verbose: print_err("Starting Avg LL: %f" % np.mean(self.lls[self.X.mask]))
-
         for i in range(max_iters):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
-
             # re-estimate the paramters μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
             self.Σ = self.var_func(self.expected_X)
 
             # now if we want a MAP estimate rather than the MLE, we can use these statistics calcualted above to update prior beliefs
             if self.map_est:
-                N = np.sum(~self.X.mask, axis=0)
-
+                # N = np.sum(~self.X.mask, axis=0)
+                N = self.N
                 # update the priors
                 self.β = self.β0 + N
-                self.m = (self.β0*self.m0 + N*self.μ)/(self.β0 + N)
+                self.m = (self.β0*self.m0 + self.N*self.μ)/(self.β0 + N)
                 self.ν = self.ν0 + N
-                self.W = self.W0 + self.Σ + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                self.Λ = self.Λ0 + self.Σ/N + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # W = linalg.inv(self.Λ0) + self.Σ*N + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # W = linalg.inv(self.Λ0) + self.Σ + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # self.Λ = linalg.inv(W)
 
                 # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
                 self.μ = self.m
-                self.Σ = self.W/(self.ν + self.D + 1)
+                self.Σ = linalg.inv(self.Λ)/(self.ν + self.D + 1)
 
             self.Σ = regularise_Σ(np.atleast_2d(self.Σ))
 
@@ -148,7 +149,17 @@ class SingleGaussian(Model):
                 # calculate ll
                 self.lls[n, d] = np.log(stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2))
 
-       def _sample(self, num_samples):
+    def evidence(self):
+        N = np.sum(~self.X.mask, axis=0)
+        p_D = 1/(np.pi**(N*self.D/2))
+        p_D *= np.exp(special.multigammaln(self.ν/2, self.D))
+        p_D /= np.exp(special.multigammaln(self.ν0/2, self.D))
+        p_D *= linalg.det(self.Λ0)**(self.ν0/2)
+        p_D /= linalg.det(self.Λ)**(self.ν/2)
+        p_D *= (self.β0/self.β)**(self.D/2)
+        return p_D
+
+    def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data.copy()]*num_samples, axis=0)
 
         for n in range(self.N):

@@ -103,10 +103,9 @@ class TwoValueMAPResultTestCase(testing_utils.TwoValuesBaseTestCase):
         β0=1
         W0=np.eye(D)*1
         ν0=D
-        model = SingleGaussian(self.data, verbose=True, map_est=True, m0=m0, β0=β0, ν0=ν0, W0=W0)
+        model = SingleGaussian(self.data, verbose=False, map_est=True, m0=m0, β0=β0, ν0=ν0, W0=W0)
         model.fit(ϵ=0)
         imputed_X = model.ml_imputation()
-        print(imputed_X)
 
         rmse = np.sqrt(np.mean(np.power(imputed_X - np.array([1, 3, 5, 6, 4, 2, 7/3, 7/3, 7/3]).reshape(3,3),2)))
         
