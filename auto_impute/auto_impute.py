@@ -5,7 +5,7 @@
 
 import argparse
 import numpy as np
-from sys import stdout
+from sys import stdout, stderr
 
 import csv_reader
 import mi
@@ -55,7 +55,11 @@ def main(args):
         print_err("")
 
     # set formatting
-    np.set_printoptions(formatter={'float': args.format})
+    # np.set_printoptions(formatter={'float': args.format})
+    if args.mixed_dp_gmm and args.verbose:
+        continuous_probs = model._continuous_probs()
+        np.savetxt(stderr, continuous_probs, fmt=args.format)
+
     # Write the output to file
     # if there was no name supplied then write to std out
     if args.file_name == None:
@@ -120,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--file_name", help="file name to write repaired files to (default: none, print to std out)",
                         type=str, default=None)
     parser.add_argument("-fmt", "--format", help="Format for printing floating point numbers (default: '%.5f')",
-                        type=str, default="%.5f")
+                        type=str, default="%.5g")
 
     model_group = parser.add_mutually_exclusive_group()
     # speed_group.add_argument("-f", "--fast", help="quick impute",
