@@ -30,9 +30,9 @@ class SingleGaussian(Model):
             self.β0 = 1e-0
 
         if W0 is not None:
-            self.Λ0 = linalg.inv(W0)
+            self.T0 = linalg.inv(W0)
         else:
-            self.Λ0 = np.eye(self.D)
+            self.T0 = np.eye(self.D)
         
         if ν0 is not None:
             self.ν0 = ν0
@@ -43,7 +43,7 @@ class SingleGaussian(Model):
         self.β = None
         self.m = None
         self.ν = None
-        self.Λ = None
+        self.T = None
 
         if independent_vars:
             self.var_func = lambda x: np.diag(ma.var(x, axis=0, ddof=1).data)
@@ -52,15 +52,18 @@ class SingleGaussian(Model):
 
         # sample from prior to init params
         # Σ
-        if not independent_vars:
-            self.Σ = np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=linalg.inv(self.Λ0)))
-        else:
-            self.Σ = np.diag([
-                    stats.invgamma.rvs(a=self.ν0/2, scale=linalg.inv(self.Λ0)[d, d]/2) for d in range(self.D)
-                ])
-        # μ
-        self.μ = np.atleast_1d(stats.multivariate_normal.rvs(mean=self.m0, cov=self.Σ/self.β0))
-
+        # if not independent_vars:
+        #     self.Σ = np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=linalg.inv(self.T0)))
+        # else:
+        #     self.Σ = np.diag([
+        #             stats.invgamma.rvs(a=self.ν0/2, scale=linalg.inv(self.T0)[d, d]/2) for d in range(self.D)
+        #         ])
+        # # μ
+        # self.μ = np.atleast_1d(stats.multivariate_normal.rvs(mean=self.m0, cov=self.Σ/self.β0))
+        # use the mode of the prior to init params
+        self.μ = self.m0
+        self.Σ = linalg.inv(self.T0)
+         
         self._calc_ML_est() 
         self._calc_ll()
 
@@ -83,17 +86,19 @@ class SingleGaussian(Model):
                 self.β = self.β0 + N
                 self.m = (self.β0*self.m0 + self.N*self.μ)/(self.β0 + N)
                 self.ν = self.ν0 + N
-                self.Λ = self.Λ0 + self.Σ/N + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
-                # W = linalg.inv(self.Λ0) + self.Σ*N + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
-                # W = linalg.inv(self.Λ0) + self.Σ + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
-                # self.Λ = linalg.inv(W)
+                S = np.diag(np.einsum("ij,ij->j", self.expected_X - self.μ, self.expected_X - self.μ)) if self.independent_vars else np.einsum("ij,ik->jk", self.expected_X - self.μ, self.expected_X - self.μ)
+                self.T = self.T0 + S + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # W = linalg.inv(self.T0) + self.Σ*N + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # W = linalg.inv(self.T0) + self.Σ + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
+                # self.T = linalg.inv(W)
 
                 # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
                 self.μ = self.m
-                self.Σ = linalg.inv(self.Λ)/(self.ν + self.D + 1)
+                # self.Σ = linalg.inv(self.T/(self.ν + self.D + 1))
+                S = np.diag(np.einsum("ij,ij->j", self.expected_X - self.μ, self.expected_X - self.μ)) if self.independent_vars else np.einsum("ij,ik->jk", self.expected_X - self.μ, self.expected_X - self.μ)
+                self.Σ = (S + linalg.inv(self.T0) + self.β0*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0)))/(N + self.ν0 - self.D)
 
             self.Σ = regularise_Σ(np.atleast_2d(self.Σ))
-
             # using the current parameters, estimate the values of the missing data (E-step)
             self._calc_ML_est()
 
@@ -154,8 +159,8 @@ class SingleGaussian(Model):
         p_D = 1/(np.pi**(N*self.D/2))
         p_D *= np.exp(special.multigammaln(self.ν/2, self.D))
         p_D /= np.exp(special.multigammaln(self.ν0/2, self.D))
-        p_D *= linalg.det(self.Λ0)**(self.ν0/2)
-        p_D /= linalg.det(self.Λ)**(self.ν/2)
+        p_D *= linalg.det(self.T0)**(self.ν0/2)
+        p_D /= linalg.det(self.T)**(self.ν/2)
         p_D *= (self.β0/self.β)**(self.D/2)
         return p_D
 
