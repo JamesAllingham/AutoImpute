@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # March 2018
 # gmm.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm
@@ -20,6 +20,19 @@ from sklearn.cluster import KMeans
 class GMM(Model):
 
     def __init__(self, data, num_components=3, verbose=None, independent_vars=False, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+        """Creates the model object.
+
+        Args:
+            data: The dataset with missing data as a numpy masked array.
+            num_components: the integer number of components in the mixture model.
+            verbose: bool, indicating whether or not information should be written to std_err.
+            independent_vars: bool, if true infer a diagonal covariance matrix, otherwise infer a full covariance matrix.
+            α0, m0, β0, W0, ν0 : the prior distribution parameters.
+            map_est: bool, if true perform MAP estimation, if false perform MLE.
+            
+        Returns:
+            The model.
+        """
         Model.__init__(self, data, verbose=verbose)
         self.num_components = num_components
         self.independent_vars = independent_vars
@@ -82,6 +95,15 @@ class GMM(Model):
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
+        """Function for inferring the model parameters
+
+        Args:
+            max_iters: An integer maximum number of iterations to run before stopping.
+            ϵ: a floating point tolerance for stopping. Inference will stop if new_LL - old_LL < ϵ.
+
+        Returns:
+            Nothing.
+        """
         best_lls = self.lls.copy()
         if self.verbose: print_err("Fitting GMM using EM algorithm (%s):" % ("MLE" if not self.map_est else "MAP estimate",))
         for i in range(max_iters):
@@ -105,6 +127,14 @@ class GMM(Model):
 
     # E-step
     def _calc_rs(self):
+        """Helper function for performing the E-step.
+
+        Args:
+            None.
+
+        Return:
+            Nothing.
+        """
         rs = np.zeros(shape=(self.N, self.num_components))
         for n in range(self.N):
             x_row = self.X[n, :].data
@@ -127,7 +157,14 @@ class GMM(Model):
 
     # M-step
     def _update_params(self): 
+        """Helper function for performing the M-step.
 
+        Args:
+            None.
+
+        Return:
+            Nothing.
+        """
         # recompute πs
         self.πs = np.mean(self.rs, axis=0)
         αs = np.array([self.α0]*self.num_components)
@@ -212,6 +249,14 @@ class GMM(Model):
             self.πs = (αs - 1)/np.sum(αs - 1)
 
     def _calc_ML_est(self):
+        """Helper function for calculating the maximum likelihood estimate of the missing values in X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         self.expected_X = self.X.data.copy()
 
         for n in range(self.N):
@@ -232,6 +277,14 @@ class GMM(Model):
                 self.expected_X[n, mask_row] += Σmo @ linalg.inv(Σoo) @ diff
 
     def _calc_ll(self):
+        """Helper function for calculating the LL of X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         self.lls = np.zeros_like(self.lls)
         for k in range(self.num_components):
             Λ = linalg.inv(self.Σs[k])
@@ -252,6 +305,14 @@ class GMM(Model):
         self.lls = np.log(self.lls)
 
     def test_ll(self, test_data):
+        """LL for unseen test data.
+
+        Args:
+            test_data: a numpy array to calculate the LL for.
+
+        Returns:
+            A numpy array the same size as test_data with containing the LLs for each entry in test_data.
+        """
         N, D = test_data.shape
         if not D == self.D: 
             print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
@@ -276,6 +337,14 @@ class GMM(Model):
         return np.log(lls)
 
     def _sample(self, num_samples):
+        """Sampling helper function.
+
+        Args:
+            num_smaples: The integer number of datasets to sample from the posterior.
+
+        Returns:
+            num_samples imputed datasets.
+        """
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
         for i in range(num_samples):

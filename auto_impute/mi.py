@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # April 2018
 # mi.py
 # Imputation by replacing missing values with the mean for the collumn
@@ -13,6 +13,14 @@ from scipy import stats
 class MeanImpute(Model):
 
     def __init__(self, data, verbose=None):
+        """Creates the model object.
+
+        Args:
+            verbose: bool, indicating whether or not information should be written to std_err.
+
+        Returns:
+            The model.
+        """
         Model.__init__(self, data, verbose=verbose)
 
         self.expected_X = self.X.data.copy()
@@ -30,12 +38,30 @@ class MeanImpute(Model):
                 self.lls[n, d] = np.log(stats.norm.pdf(self.expected_X[n, d], loc=self.μ[d], scale=1e-1)) # adding a little leeway here
 
     def _sample(self, num_samples):
+        """Sampling helper function.
+
+        Note that mean imputation can't sample so this returns num_samples copies of the ML imputation.
+
+        Args:
+            num_smaples: The integer number of datasets to sample from the posterior.
+
+        Returns:
+            num_samples imputed datasets.
+        """
         if self.verbose: 
             print_err("Cannot sample from a mean imputation. Returning the means.")
 
         return np.stack([self.expected_X]*num_samples, axis=0)
 
     def test_ll(self, test_data):
+        """LL for unseen test data.
+
+        Args:
+            test_data: a numpy array to calculate the LL for.
+
+        Returns:
+            A numpy array the same size as test_data with containing the LLs for each entry in test_data
+        """
         N, D = test_data.shape
         if not D == self.D: 
             print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))

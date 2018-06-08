@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # May 2018
 # dp.py
 # Imputation using a Dirichlet process
@@ -13,6 +13,16 @@ import copy
 class DP(Model):
 
     def __init__(self, data, verbose=None, α=1, G=None):
+        """Creates the model object.
+
+        Args:
+            data: The dataset with missing data as a numpy masked array.
+            verbose: bool, indicating whether or not information should be written to std_err.
+            α: floating point concentration parameter.
+            G: prior distribution: scipy.stats objects or other objects with similar interfaces
+        Returns:
+            The model.
+        """
         Model.__init__(self, data, verbose=verbose)
 
         self.α = α
@@ -34,6 +44,14 @@ class DP(Model):
         self._calc_ll()
 
     def _calc_ML_est(self):
+        """Helper function for calculating the maximum likelihood estimate of the missing values in X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         # copy so that we don't modify the original data
         col_lookups_ = copy.deepcopy(self.col_lookups)
 
@@ -72,6 +90,14 @@ class DP(Model):
                     
 
     def _calc_ll(self):
+        """Helper function for calculating the LL of X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         col_lookups_ = [{ } for d in range(self.D)]
         
         for d in range(self.D):
@@ -92,6 +118,14 @@ class DP(Model):
                     col_lookups_[d][x] = 1
 
     def test_ll(self, test_data):
+        """LL for unseen test data.
+
+        Args:
+            test_data: a numpy array to calculate the LL for.
+
+        Returns:
+            A numpy array the same size as test_data with containing the LLs for each entry in test_data.
+        """
         N, D = test_data.shape
         if not D == self.D: 
             print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
@@ -112,6 +146,14 @@ class DP(Model):
         return lls
 
     def log_evidence(self):
+        """Log of the evidence used for model comparison.
+
+        Args:
+            None.
+
+        Returns:
+            The log evidence as a floating point number.
+        """
         col_lookups_ = [{ } for d in range(self.D)]
         lls = []
         for d in range(self.D):
@@ -135,6 +177,14 @@ class DP(Model):
         return np.sum(lls)
 
     def _sample(self, num_samples):
+        """Sampling helper function.
+
+        Args:
+            num_smaples: The integer number of datasets to sample from the posterior.
+
+        Returns:
+            num_samples imputed datasets.
+        """
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
 
         for i in range(num_samples):

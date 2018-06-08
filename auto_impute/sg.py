@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # March 2018
 # sg.py
 # Imputation using a single Gaussian distribution fitted using the EM algorithm
@@ -14,7 +14,19 @@ from scipy import special
 
 class SingleGaussian(Model):
 
-    def __init__(self, data, verbose=None, independent_vars=True, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+    def __init__(self, data, verbose=None, independent_vars=False, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+        """Creates the model object.
+
+        Args:
+            data: The dataset with missing data as a numpy masked array.
+            verbose: bool, indicating whether or not information should be written to std_err.
+            independent_vars: bool, if true infer a diagonal covariance matrix, otherwise infer a full covariance matrix.
+            m0, β0, W0, ν0 : the prior distribution parameters.
+            map_est: bool, if true perform MAP estimation, if false perform MLE.
+            
+        Returns:
+            The model.
+        """
         Model.__init__(self, data, verbose=verbose)
         self.map_est = map_est
         self.independent_vars = independent_vars
@@ -50,17 +62,6 @@ class SingleGaussian(Model):
         else:
             self.var_func = lambda x: ma.cov(x, rowvar=False).data
 
-        # sample from prior to init params
-        # Σ
-        # if not independent_vars:
-        #     self.Σ = np.atleast_2d(stats.invwishart.rvs(df=self.ν0, scale=linalg.inv(self.T0)))
-        # else:
-        #     self.Σ = np.diag([
-        #             stats.invgamma.rvs(a=self.ν0/2, scale=linalg.inv(self.T0)[d, d]/2) for d in range(self.D)
-        #         ])
-        # # μ
-        # self.μ = np.atleast_1d(stats.multivariate_normal.rvs(mean=self.m0, cov=self.Σ/self.β0))
-        # use the mode of the prior to init params
         self.μ = self.m0
         self.Σ = linalg.inv(self.T0)
          
@@ -68,6 +69,15 @@ class SingleGaussian(Model):
         self._calc_ll()
 
     def fit(self, max_iters=100, ϵ=1e-1):
+        """Function for inferring the model parameters
+
+        Args:
+            max_iters: An integer maximum number of iterations to run before stopping.
+            ϵ: a floating point tolerance for stopping. Inference will stop if new_LL - old_LL < ϵ.
+
+        Returns:
+            Nothing.
+        """
         # fit the model to the data
         best_lls = self.lls.copy()
         if self.verbose: print_err("Fitting single gaussian using EM:")
@@ -114,6 +124,14 @@ class SingleGaussian(Model):
             if self.verbose: print_err("Iter: %s\t\t\tAvg LL: %f" % (i, np.mean(self.lls[self.X.mask])))
             
     def _calc_ML_est(self):
+        """Helper function for calculating the maximum likelihood estimate of the missing values in X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         expected_X = self.X.data.copy()
 
         expected_X[self.X.mask] = np.stack([self.μ]*self.N, axis=0)[self.X.mask]
@@ -139,6 +157,14 @@ class SingleGaussian(Model):
         self.expected_X = expected_X
 
     def _calc_ll(self):
+        """Helper function for calculating the LL of X.
+
+        Args:
+            None.
+
+        Returns:
+            Nothing.
+        """
         Λ = linalg.inv(self.Σ)
 
         for d in range(self.D):
@@ -155,6 +181,14 @@ class SingleGaussian(Model):
                 self.lls[n, d] = np.log(stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2))
 
     def test_ll(self, test_data):
+        """LL for unseen test data.
+
+        Args:
+            test_data: a numpy array to calculate the LL for.
+
+        Returns:
+            A numpy array the same size as test_data with containing the LLs for each entry in test_data.
+        """
         N, D = test_data.shape
         if not D == self.D: 
             print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
@@ -179,6 +213,14 @@ class SingleGaussian(Model):
         return lls
 
     def log_evidence(self):
+        """Log of the evidence used for model comparison.
+
+        Args:
+            None.
+
+        Returns:
+            The log evidence as a floating point number.
+        """
         N = np.sum(~self.X.mask, axis=0)
         p_D = np.log(1/(np.pi**(N*self.D/2)))
         p_D += special.multigammaln(self.ν/2, self.D)
@@ -189,6 +231,14 @@ class SingleGaussian(Model):
         return p_D
 
     def _sample(self, num_samples):
+        """Sampling helper function.
+
+        Args:
+            num_smaples: The integer number of datasets to sample from the posterior.
+
+        Returns:
+            num_samples imputed datasets.
+        """
         sampled_Xs = np.stack([self.X.data.copy()]*num_samples, axis=0)
 
         for n in range(self.N):
