@@ -7,7 +7,6 @@
 
 import numpy as np
 np.random.seed(42)
-import pandas as pd
 from sklearn.datasets import load_boston, load_iris
 
 def main():
