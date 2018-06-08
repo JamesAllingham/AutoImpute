@@ -4,6 +4,7 @@
 # Imputation using a Dirichlet process
 
 from model import Model
+from utilities import print_err
 
 import numpy as np
 from scipy import stats
@@ -37,7 +38,7 @@ class DP(Model):
         col_lookups_ = copy.deepcopy(self.col_lookups)
 
         # complete each column going from top to bottom
-        self.expected_X = self.X.data
+        self.expected_X = self.X.data.copy()
         for d in range(self.D):
             for n in range(self.N):
                 # skip this iter if we don't need to impute a value
@@ -75,7 +76,7 @@ class DP(Model):
         
         for d in range(self.D):
             for n in range(self.N):
-                x = self.X.data[n, d]
+                x = self.expected_X[n, d]
 
                 N = np.sum(list(col_lookups_[d].values()))
                 p_x = 0
@@ -90,7 +91,27 @@ class DP(Model):
                 else:
                     col_lookups_[d][x] = 1
 
-    def evidence(self):
+    def test_ll(self, test_data):
+        N, D = test_data.shape
+        if not D == self.D: 
+            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+
+        lls = np.zeros_like(self.lls)
+        
+        for d in range(D):
+            for n in range(N):
+                x = test_data[n, d]
+
+                Num = np.sum(list(self.col_lookups[d].values()))
+                p_x = 0
+                if x in self.col_lookups[d]:
+                    p_x += self.col_lookups[d][x]/(Num + self.α)  
+                p_x += self.α/(Num + self.α)*self.G.pdf(x)
+                lls[n, d] = np.log(p_x)
+
+        return lls
+
+    def log_evidence(self):
         col_lookups_ = [{ } for d in range(self.D)]
         lls = []
         for d in range(self.D):
@@ -111,7 +132,7 @@ class DP(Model):
                 else:
                     col_lookups_[d][x] = 1
 
-        return np.exp(np.sum(lls))
+        return np.sum(lls)
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
@@ -134,7 +155,6 @@ class DP(Model):
                     pvals = np.array(list(col_lookups_[d].values()) + [self.α])
                     pvals = pvals/np.sum(pvals)
                     choice = np.argmax(np.random.multinomial(1, pvals))
-                    # if d == self.D - 1: print(choice, pvals.size)
 
                     # if the choice was the new observation
                     if choice == pvals.size - 1:
