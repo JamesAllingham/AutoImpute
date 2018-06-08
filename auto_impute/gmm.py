@@ -19,7 +19,7 @@ from sklearn.cluster import KMeans
 
 class GMM(Model):
 
-    def __init__(self, data, num_components, verbose=None, independent_vars=True, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
+    def __init__(self, data, num_components=3, verbose=None, independent_vars=False, α0=None, m0=None, β0=None, W0=None, ν0=None, map_est=True):
         Model.__init__(self, data, verbose=verbose)
         self.num_components = num_components
         self.independent_vars = independent_vars
@@ -50,7 +50,7 @@ class GMM(Model):
         if W0 is not None:
             self.W0 = W0
         else:
-            self.W0 = np.eye(self.D)
+            self.W0 = np.eye(self.D)*1000
         
         if ν0 is not None:
             self.ν0 = ν0
@@ -204,7 +204,7 @@ class GMM(Model):
                 ν = self.ν0 + N_k
                 W = self.W0 + self.Σs[k] + self.β0*N_k/(self.β0 + N_k)*(np.diag((self.μs[k] - self.m0)**2) if self.independent_vars else np.outer(self.μs[k] - self.m0, self.μs[k] - self.m0))
 
-                # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
+                # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estimates
                 self.μs[k] = m
                 self.Σs[k] = W/(ν + self.D + 1)
         
@@ -250,6 +250,30 @@ class GMM(Model):
                     self.lls[n, d] += self.πs[k]*stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2)
 
         self.lls = np.log(self.lls)
+
+    def test_ll(self, test_data):
+        N, D = test_data.shape
+        if not D == self.D: 
+            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+
+        lls = np.zeros_like(self.lls)
+        for k in range(self.num_components):
+            Λ = linalg.inv(self.Σs[k])
+
+            for d in range(self.D):
+                mask_row = np.array([False]*self.D)
+                mask_row[d] = True     
+                σ2 = linalg.inv(Λ[np.ix_(mask_row, mask_row)])
+                Λtmp = σ2 @ Λ[np.ix_(mask_row, ~mask_row)] 
+                
+                for n in range(self.N):
+                    x_row = test_data[n, :]
+                    μ = self.μs[k][mask_row] - Λtmp @ (x_row[~mask_row] - self.μs[k][~mask_row])
+
+                    # calculate ll
+                    lls[n, d] += self.πs[k]*stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2)
+
+        return np.log(lls)
 
     def _sample(self, num_samples):
         sampled_Xs = np.stack([self.X.data]*num_samples, axis=0)
