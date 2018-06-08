@@ -76,7 +76,7 @@ class SingleGaussian(Model):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
             # re-estimate the paramters μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
-            self.Σ = self.var_func(self.expected_X)
+            self.Σ = self.var_func(self.expected_X) # TODO + C
 
             # now if we want a MAP estimate rather than the MLE, we can use these statistics calcualted above to update prior beliefs
             if self.map_est:
@@ -154,14 +154,38 @@ class SingleGaussian(Model):
                 # calculate ll
                 self.lls[n, d] = np.log(stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2))
 
-    def evidence(self):
+    def test_ll(self, test_data):
+        N, D = test_data.shape
+        if not D == self.D: 
+            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+
+        lls = np.zeros_like(self.lls)
+
+        Λ = linalg.inv(self.Σ)
+
+        for d in range(D):
+            mask_row = np.array([False]*D)
+            mask_row[d] = True     
+            σ2 = linalg.inv(Λ[np.ix_(mask_row, mask_row)])
+            Λtmp = σ2 @ Λ[np.ix_(mask_row, ~mask_row)] 
+            
+            for n in range(N):
+                x_row = test_data[n, :]
+                μ = self.μ[mask_row] - Λtmp @ (x_row[~mask_row] - self.μ[~mask_row])
+
+                # calculate ll
+                lls[n, d] = np.log(stats.multivariate_normal.pdf(x_row[d], mean=μ, cov=σ2))
+
+        return lls
+
+    def log_evidence(self):
         N = np.sum(~self.X.mask, axis=0)
-        p_D = 1/(np.pi**(N*self.D/2))
-        p_D *= np.exp(special.multigammaln(self.ν/2, self.D))
-        p_D /= np.exp(special.multigammaln(self.ν0/2, self.D))
-        p_D *= linalg.det(self.T0)**(self.ν0/2)
-        p_D /= linalg.det(self.T)**(self.ν/2)
-        p_D *= (self.β0/self.β)**(self.D/2)
+        p_D = np.log(1/(np.pi**(N*self.D/2)))
+        p_D += special.multigammaln(self.ν/2, self.D)
+        p_D -= special.multigammaln(self.ν0/2, self.D)
+        p_D += (self.ν0/2)*np.log(linalg.det(self.T0))
+        p_D -= (self.ν/2)*np.log(linalg.det(self.T))
+        p_D += (self.D/2)*np.log((self.β0/self.β))
         return p_D
 
     def _sample(self, num_samples):
@@ -188,6 +212,6 @@ class SingleGaussian(Model):
                 μmo += Σcond @ diff # won't change if the variables are independent
 
             for i in range(num_samples):
-                sampled_Xs[i, n, mask_row] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)
+                sampled_Xs[i, n, mask_row] = stats.multivariate_normal.rvs(mean=μmo, cov=Σmm, size=1)                
 
         return sampled_Xs
