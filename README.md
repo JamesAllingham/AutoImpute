@@ -8,5 +8,3 @@ Developed for Python 3 (tested with 3.5.2 on Ubuntu 16.04).
 * Numpy (1.14.0)
 
 * Scipy (1.10.0)
-
-* Sci-Kit Learn (0.19.1)
