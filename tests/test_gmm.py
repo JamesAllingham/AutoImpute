@@ -90,7 +90,7 @@ class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase)
 
     def runTest(self):
 
-        model = GMM(self.data, 1, verbose=False, independent_vars=True, map_est=False)
+        model = GMM(self.data,  num_components=1, verbose=False, independent_vars=True, map_est=False)
         
         imputed_X1 = model.ml_imputation()
 
@@ -144,11 +144,11 @@ class IndependentVsDependentLLTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
 
-        model_ind = GMM(self.data, 1, verbose=False, independent_vars=True, map_est=False)
+        model_ind = GMM(self.data,  num_components=1, verbose=False, independent_vars=True, map_est=False)
         model_ind.fit()
         ll_ind = model_ind.log_likelihood(complete=False, return_mean=True)
 
-        model_dep = GMM(self.data, 1, verbose=False, independent_vars=False, map_est=False)
+        model_dep = GMM(self.data,  num_components=1, verbose=False, independent_vars=False, map_est=False)
         model_dep.fit()
         ll_dep = model_dep.log_likelihood(complete=False, return_mean=True)
 
@@ -186,10 +186,10 @@ class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
         β0=1
         W0=np.eye(self.data.shape[1])*1000
         ν0=self.data.shape[1]
-        model = GMM(self.data, 1, verbose=False, independent_vars=False, m0=m0, ν0=ν0, β0=β0, W0=W0)
+        model = GMM(self.data,  num_components=1, verbose=False, independent_vars=False, m0=m0, ν0=ν0, β0=β0, W0=W0)
         model.fit(ϵ=0)
 
-        model_dep = GMM(self.data, 1, verbose=False, independent_vars=False, m0=m0, ν0=ν0, β0=β0, W0=W0)
+        model_dep = GMM(self.data,  num_components=1, verbose=False, independent_vars=False, m0=m0, ν0=ν0, β0=β0, W0=W0)
         model_dep.fit(ϵ=0)
         ll_dep = model_dep.log_likelihood(complete=False, return_mean=True)
 
@@ -198,12 +198,12 @@ class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
 class TwoCompLLSmallerThan10CompTestCase(testing_utils.IrisMCAR10BaseTestCase):
 
     def runTest(self):
-
-        model2 = GMM(self.data, 2, verbose=False, independent_vars=True, map_est=False)
+        W0=np.eye(self.data.shape[1])
+        model2 = GMM(self.data, num_components=2, verbose=False, independent_vars=True, map_est=False, W0=W0)
         model2.fit()
         ll2 = model2.log_likelihood(complete=False, return_mean=True)
 
-        model10 = GMM(self.data, 10, verbose=False, independent_vars=True, map_est=False)
+        model10 = GMM(self.data, num_components=10, verbose=False, independent_vars=True, map_est=False, W0=W0)
         model10.fit()
         ll10 = model10.log_likelihood(complete=False, return_mean=True)
         
@@ -213,11 +213,11 @@ class MAPandMLEGiveDifferentLLsTestCase(testing_utils.IrisMCAR20BaseTestCase):
 
     def runTest(self):
 
-        modelMLE = GMM(self.data, 2, verbose=False, independent_vars=True, map_est=False)
+        modelMLE = GMM(self.data,  num_components=2, verbose=False, independent_vars=True, map_est=False)
         modelMLE.fit()
         llMLE = modelMLE.log_likelihood(complete=False, return_mean=True)
 
-        modelMAP = GMM(self.data, 2, verbose=False, independent_vars=True, map_est=True)
+        modelMAP = GMM(self.data,  num_components=2, verbose=False, independent_vars=True, map_est=True)
         modelMAP.fit()
         llMAP = modelMAP.log_likelihood(complete=False, return_mean=True)
 
@@ -239,7 +239,7 @@ class TenCompMAPDoesntCrashOnIris50TestCase(testing_utils.IrisMCAR50BaseTestCase
 
     def runTest(self):
 
-        model = GMM(self.data, 10, verbose=False, independent_vars=True, map_est=True)
+        model = GMM(self.data,  num_components=10, verbose=False, independent_vars=True, map_est=True)
         raised = False
         try:
             model.fit()

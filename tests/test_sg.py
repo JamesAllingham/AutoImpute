@@ -179,7 +179,7 @@ class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase)
 
     def runTest(self):
 
-        model = SingleGaussian(self.data, verbose=False, independent_vars=False, map_est=False)
+        model = SingleGaussian(self.data, verbose=False, independent_vars=False, map_est=True)
         imputed_X1 = model.ml_imputation()
         model.fit()
         imputed_X2 = model.ml_imputation()
