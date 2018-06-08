@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # May 2018
 # test_SingleGaussianEM.py
 # Tests for the Dirichlet process 
@@ -15,7 +15,8 @@ from dp import DP
 import testing_utils
 
 class EandPiResultTestCase(testing_utils.EandPiBaseTestCase):
-
+    """Tests the predictions of the maximum likelihood imputation of the DP using.
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=None, α=0.5, G=stats.norm(loc=0, scale=1))
@@ -38,7 +39,8 @@ class EandPiResultTestCase(testing_utils.EandPiBaseTestCase):
         self.assertTrue(np.all(expected_X == imputed_X))
 
 class EandPiLLTestCase(testing_utils.EandPiBaseTestCase):
-
+    """Tests the missing data log-likelihoods of the maximum likelihood imputation of the DP.
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=False, α=0.5, G=stats.norm(loc=0, scale=1))
@@ -61,7 +63,8 @@ class EandPiLLTestCase(testing_utils.EandPiBaseTestCase):
         self.assertTrue(np.all(lls == expected_lls))
 
 class NotAllZerosGivenNoObsTestCase(testing_utils.EandPiBaseTestCase):
-
+    """Tests that the sample function works when given only missing data.
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=False)
@@ -71,7 +74,8 @@ class NotAllZerosGivenNoObsTestCase(testing_utils.EandPiBaseTestCase):
         self.assertFalse(np.all(result[:, 4] == 0))
 
 class SingleColumnSampleTest(testing_utils.OneColumnBaseTestCase):
-
+    """Tests that a) the DP works on a single column, and that b) if there are no missing values the output will be the observed data.
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=False)
@@ -81,7 +85,8 @@ class SingleColumnSampleTest(testing_utils.OneColumnBaseTestCase):
         self.assertTrue(np.all(sampled_X[0, 0:2, :] == np.array([[1], [2]])))
 
 class SingleColumnMultipleSample(testing_utils.OneColumnBaseTestCase):
-
+    """Tests that all samples from a dataset with no missing values will be the same.
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=False)
@@ -91,7 +96,8 @@ class SingleColumnMultipleSample(testing_utils.OneColumnBaseTestCase):
         self.assertFalse(np.all(sampled_X[:, 2, :] == sampled_X[0,2,0]))
 
 class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
-
+    """Tests that the maximum likelihood prediction of the DP on a dataset with only missing values is the mode of the base distribution G_0 .
+    """
     def runTest(self):
 
         model = DP(self.data, verbose=False)

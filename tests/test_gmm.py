@@ -1,4 +1,4 @@
-# James Allingham
+# John Doe
 # April 2018
 # test_gmm.py
 # Tests for the GMM module
@@ -17,7 +17,8 @@ import testing_utils
 
 
 class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
-
+    """Tests that if there are no missing values the prediction RMSE is 0.
+    """
     def runTest(self):
         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
         model.fit()
@@ -28,7 +29,8 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
         self.assertAlmostEqual(rmse, 0.0)
 
 class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
-
+    """Tests that the average missing data log-likelihood is not a number when there is no missing data.
+    """
     def runTest(self):
         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
 
@@ -37,7 +39,8 @@ class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase
         self.assertTrue(np.isnan(ll))
 
 class AllMissingValuesMLEResultDoesntChangeTestCase(testing_utils.AllMissingBaseTestCase):
-
+    """Tests that the maximum likelihood predictions, before and after fitting a single component GMM with MLE, are the same if all the data is missing.
+    """
     def runTest(self):
         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
 
@@ -51,7 +54,8 @@ class AllMissingValuesMLEResultDoesntChangeTestCase(testing_utils.AllMissingBase
         self.assertAlmostEqual(rmse, 0.0)
 
 class AllMissingValuesMultipleComponenetsMLEResultDoesntChangeTestCase(testing_utils.AllMissingBaseTestCase):
-
+    """Tests that the maximum likelihood predictions, before and after fitting a three component GMM with MLE, are the same if all the data is missing.
+    """
     def runTest(self):
         model = GMM(self.data, num_components=3, verbose=False, map_est=False)
 
@@ -65,7 +69,9 @@ class AllMissingValuesMultipleComponenetsMLEResultDoesntChangeTestCase(testing_u
         self.assertAlmostEqual(rmse, 0.0)
 
 class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase):
-
+    """Tests that the maximum likelihood predictions, before and after fitting a single component GMM with MLE to a single variable dataset,
+     are the same if all the data is missing.
+    """
     def runTest(self):
 
         model = GMM(self.data,  num_components=1, verbose=False, independent_vars=True, map_est=False)
@@ -80,7 +86,8 @@ class OneColumnAllMissingTestCase(testing_utils.OneColumnAllMissingBaseTestCase)
         self.assertAlmostEqual(rmse, 0.0)
 
 class OneValueMLEResultTestCase(testing_utils.OneValueBaseTestCase):
-
+    """Tests that the maximum-likelihood predictions of an MLE GMM are correct when there is only 1 non-missing value in each column.
+    """
     def runTest(self):
         m0=np.zeros(shape=(self.data.shape[1], ))
         β0=1
@@ -96,7 +103,8 @@ class OneValueMLEResultTestCase(testing_utils.OneValueBaseTestCase):
         self.assertAlmostEqual(rmse, 0.0, places=6)
 
 class TwoValueMLEResultTestCase(testing_utils.TwoValuesBaseTestCase):
-
+    """Tests that the maximum-likelihood predictions of an MLE GMM are correct when there is only 2 non-missing value in each column.
+    """
     def runTest(self):
         m0=np.zeros(shape=(self.data.shape[1], ))
         β0=1
@@ -109,7 +117,8 @@ class TwoValueMLEResultTestCase(testing_utils.TwoValuesBaseTestCase):
         self.assertTrue(np.all(imputed_X == np.array([1, 3, 5, 6, 4, 2, 3.5, 3.5, 3.5]).reshape(3,3)))
 
 class TwoValuesSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
-
+    """Tests that samples from the GMM are not identical.
+    """
     def runTest(self):
         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
 
@@ -119,7 +128,9 @@ class TwoValuesSamplesDifferentTestCase(testing_utils.TwoValuesBaseTestCase):
         self.assertTrue(rmse > 0)
 
 class IndependentVsDependentLLTestCase(testing_utils.IrisMCAR10BaseTestCase):
-
+    """Tests that a GMM with a diagonal covariance matrices for the components performs worse than one with full covariance matrices,
+     when the dataset has correlation between its variables.
+    """
     def runTest(self):
 
         model_ind = GMM(self.data,  num_components=1, verbose=False, independent_vars=True, map_est=False)
@@ -133,7 +144,8 @@ class IndependentVsDependentLLTestCase(testing_utils.IrisMCAR10BaseTestCase):
         self.assertGreater(ll_dep, ll_ind)
 
 class OneColumnPredTestCase(testing_utils.OneColumnBaseTestCase):
-
+    """Tests that the GMM works for a dataset with a single column.
+    """
     def runTest(self):
         m0=np.zeros(shape=(self.data.shape[1], ))
         β0=1
@@ -147,7 +159,8 @@ class OneColumnPredTestCase(testing_utils.OneColumnBaseTestCase):
         self.assertTrue(np.all(imputed_X == np.array([[1], [2], [1.5]])))
 
 class OneColumnSampleTestCase(testing_utils.OneColumnBaseTestCase):
-
+    """Tests that samples drawn for the same variable are different.
+    """
     def runTest(self):
 
         model = GMM(self.data, num_components=1, verbose=False, map_est=False)
@@ -158,7 +171,8 @@ class OneColumnSampleTestCase(testing_utils.OneColumnBaseTestCase):
         self.assertTrue(rmse > 0)
 
 class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
-
+    """Tests that GMMS which have components with diagonal and full covariance matrices are equivalent on a single variable dataset.
+    """
     def runTest(self):
         m0=np.zeros(shape=(self.data.shape[1], ))
         β0=1
@@ -174,7 +188,8 @@ class OneColumnLLTestCase(testing_utils.OneColumnBaseTestCase):
         self.assertEqual(ll_dep, model.log_likelihood(complete=False, return_mean=True))
 
 class TwoCompLLSmallerThan10CompTestCase(testing_utils.IrisMCAR10BaseTestCase):
-
+    """Tests that a MLE GMM with 2 components has a lower missing data log-likelihood than one with 10 components.
+    """
     def runTest(self):
         W0=np.eye(self.data.shape[1])
         model2 = GMM(self.data, num_components=2, verbose=False, independent_vars=True, map_est=False, W0=W0)
@@ -188,7 +203,8 @@ class TwoCompLLSmallerThan10CompTestCase(testing_utils.IrisMCAR10BaseTestCase):
         self.assertGreater(ll10, ll2)
 
 class MAPandMLEGiveDifferentLLsTestCase(testing_utils.IrisMCAR20BaseTestCase):
-
+    """Tests that the MAP estimate and MLE for the GMM parameters are different.
+    """
     def runTest(self):
 
         modelMLE = GMM(self.data,  num_components=2, verbose=False, independent_vars=True, map_est=False)
@@ -201,20 +217,9 @@ class MAPandMLEGiveDifferentLLsTestCase(testing_utils.IrisMCAR20BaseTestCase):
 
         self.assertNotAlmostEqual(llMLE, llMAP)
 
-# class TenCompDoesntCrashOnBoston10TestCase(testing_utils.BostonMCAR10BaseTestCase):
-
-#     def runTest(self):
-
-#         model = GMM(self.data, 10, verbose=False, independent_vars=True, map_est=False)
-#         raised = False
-#         try:
-#             model.fit()
-#         except:
-#             raised = True
-#         self.assertFalse(raised, 'Exception raised')
-
 class TenCompMAPDoesntCrashOnIris50TestCase(testing_utils.IrisMCAR50BaseTestCase):
-
+    """Tests that a 10 component GMM with MAP estimation makes predictions for the Iris dataset with 50 MCAR data.
+    """
     def runTest(self):
 
         model = GMM(self.data,  num_components=10, verbose=False, independent_vars=True, map_est=True)
