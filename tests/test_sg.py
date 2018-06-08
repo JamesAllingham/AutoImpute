@@ -23,27 +23,7 @@ class NoMissingValuesRMSETestCase(testing_utils.NoMissingValuesBaseTestCase):
         rmse = np.sqrt(np.mean(np.power(self.data - imputed_X,2)))
 
         self.assertAlmostEqual(rmse, 0.0)
-
-# class NoMissingValuesCompleteInitialLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
-
-#     def runTest(self):
-#         model = SingleGaussian(self.data, verbose=False, independent_vars=True, map_est=False)
-
-#         ll = model.log_likelihood(return_mean=True, complete=True)
-
-#         self.assertAlmostEqual(ll, -3.179506983107214)
-
-# class NoMissingValuesCompleteFinalLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
-
-#     def runTest(self):
-#         model = SingleGaussian(self.data, verbose=False, map_est=False)
-
-#         ll1 = model.log_likelihood(return_mean=True, complete=True)
-#         model.fit()
-#         ll2 = model.log_likelihood(return_mean=True, complete=True)
-#         print(ll1, ll2)
-#         self.assertAlmostEqual(ll1, ll2)
-
+        
 class NoMissingValuesMissingLLTestCase(testing_utils.NoMissingValuesBaseTestCase):
 
     def runTest(self):
