@@ -1,11 +1,11 @@
-# James Allingham
+# John Doe
 # Feb 2018
 # auto_impute.py
 # Main file for AutoImpute CLI
 
 import argparse
 import numpy as np
-from sys import stdout, stderr
+from sys import stdout
 
 import csv_reader
 import mi
@@ -33,32 +33,41 @@ def main(args):
         print_err("Percentage missing elements: %s\n" % (np.mean(data.mask),))
         print_err("")
 
-    if args.gaussian_mixture:
-        model = gmm.GMM(data, args.num_components, verbose=args.verbose, map_est=not args.ml_estimation)
+    if args.gaussian_mix:
+        if args.verbose: print_err("Using GMM\n")
+        model = gmm.GMM(data, args.num_comp, verbose=args.verbose, map_est=not args.ml_estimation)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
     elif args.single_gaussian:
-        model = sg.SingleGaussian(data, verbose=args.verbose)
+        if args.verbose: print_err("Using SG\n")
+        model = sg.SingleGaussian(data, verbose=args.verbose, map_est=not args.ml_estimation)
         model.fit(max_iters=args.max_iters, ϵ=args.epsilon)
-    elif args.dirichlet_process:
+    elif args.dirichlet_proc:
+        if args.verbose: print_err("Using DP\n")
         model = dp.DP(data, verbose=args.verbose)
-    elif args.mixed_dp_gmm:
-        model = mixed.Mixed(data, num_components=args.num_components, verbose=args.verbose, assignments=args.column_assignments)
+    elif args.sg_dp_mix:
+        if args.verbose: print_err("Using SG DP Mix\n")
+        model = mixed.Mixed(data, num_components=args.num_comp, verbose=args.verbose, assignments=args.assignments, map_est=not args.ml_estimation)
     else:
+        if args.verbose: print_err("Using MI\n")
         model = mi.MeanImpute(data, verbose=args.verbose)
 
     print_err("Avg LL: %s" % model.log_likelihood(return_mean=True, complete=False))
     print_err("")
-    if args.test is not None:
-        test_data = np.genfromtxt(args.test, delimiter=args.delimiter)
+    if args.test_file is not None:
+        test_data = np.genfromtxt(args.test_file, delimiter=args.delimiter)
         imputed_X =  model.ml_imputation()
-        print_err("RMSE: %s" % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
+        print_err(("Test RMSE: \t" + args.format) % np.sqrt(np.mean(np.power(test_data - imputed_X, 2))))
+        if hasattr(model, 'test_ll') :
+            print_err(("Avg test LL: \t" + args.format) % np.mean(model.test_ll(test_data)))
         print_err("")
 
-    # set formatting
-    # np.set_printoptions(formatter={'float': args.format})
-    if args.mixed_dp_gmm and args.verbose:
+    # print column assignments
+    if args.sg_dp_mix and args.verbose and not args.assignments:
+        print_err("Column\t % real")
         continuous_probs = model._continuous_probs()
-        np.savetxt(stderr, continuous_probs, fmt=args.format)
+        for i, cp in enumerate(continuous_probs):
+            print_err(("%s \t" + args.format) % (i, cp))
+        print_err("")
 
     # Write the output to file
     # if there was no name supplied then write to std out
@@ -105,41 +114,37 @@ if __name__ == "__main__":
                         type=str, default=",")
     parser.add_argument("-hd", "--header", help="use the first row as column names (default: False)",
                         type=bool, default=False)
-    parser.add_argument("-rs", "--rand_seed", help="random seed to use (default: None)",
+    parser.add_argument("-rs", "--rand_seed", help="specify random seed for reprodicibility (default: None)",
                         type=int)
-    parser.add_argument("-t", "--test", help="file to use for calculating RMSE",
+    parser.add_argument("-t", "--test_file", help="file to use for calculating test metrics",
                         type=str, default=None)
-    parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '')",
+    parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '' (empty string))",
                         type=str, default='')
-    parser.add_argument("-k", "--num_components", help="number of components for mixture models (default: 10)",
-                        type=int, default=10)
-    parser.add_argument("-a", "--column_assignments", help="data type assignments for each column either 'r' for real or 'd' for discrete e.g. 'dddrrr' for 3 discrete followed by 3 real (default: all real)",
+    parser.add_argument("-k", "--num_comp", help="number of components for mixture models (default: num = 3)",
+                        type=int, default=3)
+    parser.add_argument("-a", "--assignments", help="data type assignments for each column either 'r' for real or 'd' for discrete e.g. 'dddrrr' for 3 discrete followed by 3 real (default: none)",
                         type=str, default=None)
-    parser.add_argument("-e", "--epsilon", help="ϵ (model stopping criterion): if LL_new - LL_old < ϵ then stop iterating (default: 1e-1)",
-                        type=float, default=1e-1)
-    parser.add_argument("-n", "--max_iters", help="maximum number of iterations to fit model (default: 100)",
-                        type=int, default=100)
+    parser.add_argument("-e", "--epsilon", help="ϵ (model stopping criterion): if LL_new - LL_old < ϵ then stop iterating (default: ϵ = 1e-1)",
+                        type=float, default=0.1)
+    parser.add_argument("-n", "--max_iters", help="maximum number of iterations to fit model (default: max =  10)",
+                        type=int, default=10)
     parser.add_argument("-mle", "--ml_estimation", help="use MLE rather than MAP for non-Bayesian models (default: False)",
                         action="store_true")
-    parser.add_argument("-o", "--file_name", help="file name to write repaired files to (default: none, print to std out)",
+    parser.add_argument("-o", "--file_name", help="file name to write repaired files to (if unspecified write to std out)",
                         type=str, default=None)
-    parser.add_argument("-fmt", "--format", help="Format for printing floating point numbers (default: '%.5f')",
+    parser.add_argument("-fmt", "--format", help="format for printing floating point numbers (default: '%%.5g')",
                         type=str, default="%.5g")
 
     model_group = parser.add_mutually_exclusive_group()
-    # speed_group.add_argument("-f", "--fast", help="quick impute",
-    #                         action="store_true")
-    # speed_group.add_argument("-e", "--exhaustive", help="exhaustive impute",
-    #                          action="store_true")
-    model_group.add_argument("-mi", "--mean_imputation", help="perform mean imputation (default option)",
+    model_group.add_argument("-mi", "--mean_impute", help="perform mean imputation (default option)",
                              action="store_true")
-    model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian fitted with EM",
+    model_group.add_argument("-sg", "--single_gaussian", help="impute using a single multivariate Gaussian",
                              action="store_true")
-    model_group.add_argument("-gmm", "--gaussian_mixture", help="impute using a Gaussian mixture model fitted with EM",
+    model_group.add_argument("-gmm", "--gaussian_mix", help="impute using a Gaussian mixture model",
                              action="store_true")
-    model_group.add_argument("-dp", "--dirichlet_process", help="impute using a Dirichlet process",
+    model_group.add_argument("-dp", "--dirichlet_proc", help="impute using a Dirichlet process",
                             action="store_true")
-    model_group.add_argument("-mix", "--mixed_dp_gmm", help="impute using a combination of DPs and GMMs",
+    model_group.add_argument("-mix", "--sg_dp_mix", help="impute using a combination of DPs and single Gaussians",
                             action="store_true")
 
     output_group = parser.add_mutually_exclusive_group()
