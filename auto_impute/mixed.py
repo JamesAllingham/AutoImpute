@@ -76,7 +76,7 @@ class Mixed(Model):
         # check if assignments were made and if so whether or not they were valid
         if assignments is not None:
             if len(assignments) != self.D:
-                print_err("%s assignemnt(s) were given. Please give one assignemnt per column (%s assignment(s))" % (len(assignments), self.D))
+                print_err("%s assignemnt(s) were given. Please give one assignment per column (%s assignment(s))" % (len(assignments), self.D))
                 exit(1)
 
             for d, assignment in enumerate(assignments):                

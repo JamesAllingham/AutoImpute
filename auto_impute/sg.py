@@ -84,7 +84,7 @@ class SingleGaussian(Model):
         if self.verbose: print_err("Starting Avg LL: %f" % np.mean(self.lls[self.X.mask]))
         for i in range(max_iters):
             old_μ, old_Σ, old_expected_X = self.μ.copy(), self.Σ.copy(), self.expected_X.copy()
-            # re-estimate the paramters μ and Σ (M-step)
+            # re-estimate the parameters μ and Σ (M-step)
             self.μ = np.mean(self.expected_X, axis=0)
             self.Σ = self.var_func(self.expected_X) # TODO + C
 
@@ -102,7 +102,7 @@ class SingleGaussian(Model):
                 # W = linalg.inv(self.T0) + self.Σ + self.β0*N/(self.β0 + N)*(np.diag((self.μ - self.m0)**2) if self.independent_vars else np.outer(self.μ - self.m0, self.μ - self.m0))
                 # self.T = linalg.inv(W)
 
-                # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estiamtes
+                # now since we are doing a MAP estimate we take the mode of the posterior distributions to get out estimates
                 self.μ = self.m
                 # self.Σ = linalg.inv(self.T/(self.ν + self.D + 1))
                 S = np.diag(np.einsum("ij,ij->j", self.expected_X - self.μ, self.expected_X - self.μ)) if self.independent_vars else np.einsum("ij,ik->jk", self.expected_X - self.μ, self.expected_X - self.μ)
@@ -145,13 +145,13 @@ class SingleGaussian(Model):
             if np.all(~mask_row) or np.all(mask_row): continue
 
             # calculate the mean of m|o
-            # get the subsets of the covaraince matrice
+            # get the subsets of the covariance matrice
             Σoo = self.Σ[np.ix_(~mask_row, ~mask_row)]
             Σmo = self.Σ[np.ix_(mask_row, ~mask_row)]
             if Σoo.shape != ():
                 μmo = Σmo @ linalg.inv(Σoo) @ (x_row[~mask_row] - self.μ[~mask_row])
 
-                # μmo will be 0 if the rows are indepenent
+                # μmo will be 0 if the rows are independent
                 expected_X[n, mask_row] += μmo
 
         self.expected_X = expected_X
@@ -191,7 +191,7 @@ class SingleGaussian(Model):
         """
         N, D = test_data.shape
         if not D == self.D: 
-            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+            print_err("Dimensionality of test data (%s) not equal to dimensionality of training data (%s)." % (D, self.D))
 
         lls = np.zeros_like(self.lls)
 
@@ -234,7 +234,7 @@ class SingleGaussian(Model):
         """Sampling helper function.
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.

@@ -29,7 +29,7 @@ class MeanImpute(Model):
         # if there are no observations in any column of X then use 0.0
         self.μ[np.isnan(self.μ)] = 0
 
-        # replace all missing values with the mean of the collumn
+        # replace all missing values with the mean of the column
         self.expected_X[self.X.mask] = self.μ[np.where(self.X.mask)[1]]
 
         # determine the lls for all of the values
@@ -43,7 +43,7 @@ class MeanImpute(Model):
         Note that mean imputation can't sample so this returns num_samples copies of the ML imputation.
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.
@@ -64,7 +64,7 @@ class MeanImpute(Model):
         """
         N, D = test_data.shape
         if not D == self.D: 
-            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+            print_err("Dimensionality of test data (%s) not equal to dimensionality of training data (%s)." % (D, self.D))
 
         lls = np.zeros_like(self.lls)
         for n in range(self.N):

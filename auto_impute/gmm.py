@@ -229,7 +229,7 @@ class GMM(Model):
             # regularisation term ensuring that the cov matrix is always pos def
             self.Σs[k] = regularise_Σ(self.Σs[k])
 
-            # now if we want a MAP estimate rather than the MLE, we can use these statistics calcualted above to update prior beliefs
+            # now if we want a MAP estimate rather than the MLE, we can use these statistics calculated above to update prior beliefs
             if self.map_est:
                 # we need one more statistic N_k
                 N_k = np.sum(self.rs[:, k])
@@ -315,7 +315,7 @@ class GMM(Model):
         """
         N, D = test_data.shape
         if not D == self.D: 
-            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+            print_err("Dimensionality of test data (%s) not equal to dimensionality of training data (%s)." % (D, self.D))
 
         lls = np.zeros_like(self.lls)
         for k in range(self.num_components):
@@ -340,7 +340,7 @@ class GMM(Model):
         """Sampling helper function.
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.

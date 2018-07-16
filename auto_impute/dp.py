@@ -31,7 +31,7 @@ class DP(Model):
         else:
             self.G = G
 
-        # for each column, create a map from unique value to number of occurances
+        # for each column, create a map from unique value to number of occupance
         self.col_lookups = [
             {
                 unique_val: count 
@@ -85,7 +85,7 @@ class DP(Model):
                     # use the appropriate value
                     x = list(col_lookups_[d].keys())[choice]
                     self.expected_X[n, d] = x
-                    # increase the approrpiate counter
+                    # increase the appropriate counter
                     col_lookups_[d][x] += 1
                     
 
@@ -128,7 +128,7 @@ class DP(Model):
         """
         N, D = test_data.shape
         if not D == self.D: 
-            print_err("Dimmensionality of test data (%s) not equal to dimmensionality of training data (%s)." % (D, self.D))
+            print_err("Dimensionality of test data (%s) not equal to dimensionality of training data (%s)." % (D, self.D))
 
         lls = np.zeros_like(self.lls)
         
@@ -180,7 +180,7 @@ class DP(Model):
         """Sampling helper function.
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.
@@ -220,7 +220,7 @@ class DP(Model):
                         # use the appropriate value
                         x = list(col_lookups_[d].keys())[choice]
                         sampled_Xs[i, n, d] = x
-                        # increase the approrpiate counter
+                        # increase the appropriate counter
                         col_lookups_[d][x] += 1
 
         return sampled_Xs

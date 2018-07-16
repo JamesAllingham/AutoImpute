@@ -78,7 +78,7 @@ def main(args):
     else:
         ofile = args.file_name
 
-    # either sample the results or get the maximim likelihood imputation
+    # either sample the results or get the maximum likelihood imputation
     if args.sample:
         result = model.sample(args.sample)
     else:
@@ -114,11 +114,11 @@ if __name__ == "__main__":
                         type=str, default=",")
     parser.add_argument("-hd", "--header", help="use the first row as column names (default: False)",
                         type=bool, default=False)
-    parser.add_argument("-rs", "--rand_seed", help="specify random seed for reprodicibility (default: None)",
+    parser.add_argument("-rs", "--rand_seed", help="specify random seed for reproducibility (default: None)",
                         type=int)
     parser.add_argument("-t", "--test_file", help="file to use for calculating test metrics",
                         type=str, default=None)
-    parser.add_argument("-i", "--indicator", help="inidcator string that a value is missing (default: '' (empty string))",
+    parser.add_argument("-i", "--indicator", help="indicator string that a value is missing (default: '' (empty string))",
                         type=str, default='')
     parser.add_argument("-k", "--num_comp", help="number of components for mixture models (default: num = 3)",
                         type=int, default=3)

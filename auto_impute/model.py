@@ -56,7 +56,7 @@ class Model(object):
         return self.expected_X
 
     def log_likelihood(self, complete=False, observed=False, return_individual=False, return_mean=False):
-        """Calculates the log likelihood of the repaired data given the model paramers.
+        """Calculates the log likelihood of the repaired data given the model parameters.
 
         Args:
             complete: bool, if True then LLs for both the missing and non-missing data is returned, if False then only the missing data LLs are returned.
@@ -65,7 +65,7 @@ class Model(object):
             return_mean: bool, if True and return individual is false, then the mean of the LLs is returned, ignored if return_individual is True.
 
         Returns:
-            numpy array of individual, average or sum of complete, observed, or missing LLs depending on the paramters above.
+            numpy array of individual, average or sum of complete, observed, or missing LLs depending on the parameters above.
         """
         lls = self.lls[~self.X.mask] if observed else self.lls[self.X.mask] if not complete else self.lls
 
@@ -81,7 +81,7 @@ class Model(object):
         """Performs multiple imputation by sampling from the posterior distribution.
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.
@@ -92,7 +92,7 @@ class Model(object):
         """Sampling helper function
 
         Args:
-            num_smaples: The integer number of datasets to sample from the posterior.
+            num_samples: The integer number of datasets to sample from the posterior.
 
         Returns:
             num_samples imputed datasets.
