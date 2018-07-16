@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # May 2018
 # dp.py
 # Imputation using a Dirichlet process

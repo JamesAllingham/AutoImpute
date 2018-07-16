@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # Feb 2018
 # csv_reader.py
 # CSV reader for AutoImpute

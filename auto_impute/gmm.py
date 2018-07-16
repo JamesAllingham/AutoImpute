@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # March 2018
 # gmm.py
 # Imputation using a Gaussian Mixture Model fitted using the EM algorithm

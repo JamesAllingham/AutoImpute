@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # May 2018
 # test_SingleGaussianEM.py
 # Tests for the Dirichlet process 

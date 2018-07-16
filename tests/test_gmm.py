@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # April 2018
 # test_gmm.py
 # Tests for the GMM module

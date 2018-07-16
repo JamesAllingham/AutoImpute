@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # March 2018
 # utilities.py
 # Common code shared between the various models.

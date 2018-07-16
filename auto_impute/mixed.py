@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # May 2018
 # mixed.py
 # Imputation using DPs and GMMs
@@ -121,7 +121,7 @@ class Mixed(Model):
         self._calc_ll() 
 
     def _continuous_probs(self):
-        """Returns the pronbility that each column is a continuous variable.
+        """Returns the probability that each column is a continuous variable.
 
         Args:
             None.

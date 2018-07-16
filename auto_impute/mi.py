@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # April 2018
 # mi.py
 # Imputation by replacing missing values with the mean for the collumn

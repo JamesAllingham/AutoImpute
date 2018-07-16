@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # March 2018
 # Model.py
 # Base class for all imputation models

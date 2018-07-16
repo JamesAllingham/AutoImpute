@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # March 2018
 # sg.py
 # Imputation using a single Gaussian distribution fitted using the EM algorithm

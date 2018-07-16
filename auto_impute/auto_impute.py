@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # Feb 2018
 # auto_impute.py
 # Main file for AutoImpute CLI

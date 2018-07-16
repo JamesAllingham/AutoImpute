@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # April 2018
 # test_sg.py
 # Tests for the single Gaussian fitted with EM

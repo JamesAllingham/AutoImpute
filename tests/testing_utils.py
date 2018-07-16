@@ -1,4 +1,4 @@
-# John Doe
+# James Allingham
 # April 2018
 # test_utils.py
 # Common utils for the unit tests.
